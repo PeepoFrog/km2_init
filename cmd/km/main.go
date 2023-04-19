@@ -11,6 +11,8 @@ import (
 	"github.com/docker/docker/client"
 )
 
+var imageVer string = "v0.13.7" // Should be pased by launcher
+
 func main() {
 	// Create a Docker client
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -19,7 +21,7 @@ func main() {
 	}
 
 	// Define the image you want to pull
-	imageVer := "v0.13.7"
+
 	imageName := fmt.Sprintf("ghcr.io/kiracore/docker/base-image:%s", imageVer)
 
 	// Pull the Docker image
