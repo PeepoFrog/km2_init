@@ -1,0 +1,5 @@
+package terminal
+
+func terminal() {
+
+}
