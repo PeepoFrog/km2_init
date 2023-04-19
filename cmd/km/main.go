@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -11,9 +12,12 @@ import (
 	"github.com/docker/docker/client"
 )
 
-var imageVer string = "v0.13.7" // Should be pased by launcher
+var imageVer string
 
 func main() {
+	flag.StringVar(&imageVer, "image", "v0.13.7", "Base-image version. Default: v0.13.7")
+	flag.Parse()
+
 	// Create a Docker client
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
