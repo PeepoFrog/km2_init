@@ -4,53 +4,57 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
-	"log"
 	"os"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	"github.com/mrlutik/km2init/pkg/cosign"
+
+	"github.com/Masterminds/semver"
 )
 
-var imageVer string
+const DockerImagePubKey = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/IrzBQYeMwvKa44/DF/HB7XDpnE+
+f+mU9F/Qbfq25bBWV2+NlYMJv3KvKHNtu3Jknt6yizZjUV4b8WGfKBzFYw==
+-----END PUBLIC KEY-----`
 
-func main() {
-	flag.StringVar(&imageVer, "image", "v0.13.7", "Base-image version. Default: v0.13.7")
-	flag.Parse()
-
-	// Create a Docker client
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+func isValidSemVer(input string) error {
+	_, err := semver.NewVersion(input)
 	if err != nil {
-		log.Fatalf("Unable to create Docker client: %s", err)
+		return err
 	}
-
-	// Define the image you want to pull
-
-	imageName := fmt.Sprintf("ghcr.io/kiracore/docker/base-image:%s", imageVer)
-
-	// Pull the Docker image
-	err = pullImage(cli, imageName)
-	if err != nil {
-		log.Fatalf("Unable to pull Docker image: %s", err)
-	}
-
-	fmt.Printf("Successfully pulled image: %s\n", imageName)
+	return nil
 }
 
-func pullImage(cli *client.Client, imageName string) error {
+func main() {
+
+	var (
+		baseImageVer    string
+		baseImageName   string
+		sekaiContainer  bool
+		interxContainer bool
+	)
+
 	ctx := context.Background()
+	// Set latest version of the base-image
+	flag.StringVar(&baseImageVer, "image", "v0.13.7", "Base-image version. Default: v0.13.7")
 
-	options := types.ImagePullOptions{}
-	reader, err := cli.ImagePull(ctx, imageName, options)
-	if err != nil {
-		return err
+	// Set contatiners to launch
+	// Binary will be from master branch aka latest
+	flag.BoolVar(&sekaiContainer, "sekai", false, "Set to true to start container with sekai")
+	flag.BoolVar(&interxContainer, "interx", false, "Set to true to start container with interx")
+
+	flag.Parse()
+
+	// Define the image you want to pull
+	if err := isValidSemVer(baseImageName); err != nil {
+		fmt.Fprintln(os.Stderr, "semver is not valid")
+		panic(err)
 	}
-	defer reader.Close()
 
-	_, err = io.Copy(os.Stdout, reader)
+	baseImageName = fmt.Sprintf("ghcr.io/kiracore/docker/base-image:%s", baseImageVer)
+
+	err := cosign.VerifyDockerImage(ctx, baseImageName, DockerImagePubKey)
 	if err != nil {
-		return err
+		fmt.Fprintln(os.Stderr, err)
 	}
 
-	return nil
 }
