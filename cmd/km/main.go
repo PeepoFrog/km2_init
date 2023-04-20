@@ -6,15 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mrlutik/km2_init/pkg/cosign"
-
 	"github.com/Masterminds/semver"
+	"github.com/mrlutik/km2_init/km/internal/cosign"
 )
-
-const DockerImagePubKey = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/IrzBQYeMwvKa44/DF/HB7XDpnE+
-f+mU9F/Qbfq25bBWV2+NlYMJv3KvKHNtu3Jknt6yizZjUV4b8WGfKBzFYw==
------END PUBLIC KEY-----`
 
 func isValidSemVer(input string) error {
 	_, err := semver.NewVersion(input)
@@ -45,16 +39,21 @@ func main() {
 	flag.Parse()
 
 	// Define the image you want to pull
-	if err := isValidSemVer(baseImageName); err != nil {
+	if err := isValidSemVer(baseImageVer); err != nil {
 		fmt.Fprintln(os.Stderr, "semver is not valid")
 		panic(err)
 	}
 
 	baseImageName = fmt.Sprintf("ghcr.io/kiracore/docker/base-image:%s", baseImageVer)
 
-	err := cosign.VerifyDockerImage(ctx, baseImageName, DockerImagePubKey)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	// err := cosign.VerifyDockerImage(ctx, baseImageName, DockerImagePubKey)
+	// if err != nil {
+	// 	fmt.Fprintln(os.Stderr, err)
+	// }
+
+	if verified, err := cosign.VerifyImageSignature(ctx, baseImageName, cosign.DockerImagePubKey); err != nil || verified != true {
+		fmt.Fprintln(os.Stderr, "verification failed. err: ", err)
 	}
+	fmt.Fprintln(os.Stdout, "Image verified!")
 
 }
