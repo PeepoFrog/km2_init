@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mrlutik/km2init/pkg/cosign"
+	"github.com/mrlutik/km2_init/pkg/cosign"
 
 	"github.com/Masterminds/semver"
 )

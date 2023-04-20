@@ -1,4 +1,4 @@
-module github.com/mrlutik/km2init
+module github.com/mrlutik/km_2init
 
 go 1.20
 
