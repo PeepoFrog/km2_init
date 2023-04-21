@@ -24,6 +24,7 @@ type Linux struct {
 }
 
 func (*Linux) PrivilageCheck() error {
+
 	currentUser, err := user.Current()
 	if err != nil {
 		println("Error getting current user:", err)
@@ -202,7 +203,6 @@ func (*Linux) ToolsInstall() error {
 		fmt.Printf("Failed to reload profile: %v\n", err)
 		return err
 	}
-	fmt.Printf("Installed bash-utils %s\n", bashUtilsVersion())
 	return nil
 }
 func downloadFile(url, fileName string) error {
