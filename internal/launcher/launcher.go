@@ -19,6 +19,7 @@ type LauncherInterface interface {
 	CosignCheck() error
 	CosignInstall(architecture string, platform string) error
 	ToolsInstall() error
+	SekaiUtilsInstall() error
 }
 type Linux struct {
 }
@@ -53,6 +54,8 @@ const (
 	COSIGN_HASH_ARM    = "8132cb2fb99a4c60ba8e03b079e12462c27073028a5d08c07ecda67284e0c88d"
 	COSIGN_HASH_AMD    = "169a53594c437d53ffc401b911b7e70d453f5a2c1f96eb2a736f34f6356c4f2b"
 	FILE_NAME          = "bash-utils.sh"
+	BIN_DEST           = "/usr/local/bin/sekai-utils.sh"
+	SEKAI_BRANCH       = "0.3.13.38"
 )
 
 func (*Linux) CosignCheck() error {
@@ -201,6 +204,31 @@ func (*Linux) ToolsInstall() error {
 	// Reload the profile
 	if err := runCommand(". /etc/profile"); err != nil {
 		fmt.Printf("Failed to reload profile: %v\n", err)
+		return err
+	}
+	return nil
+}
+func (*Linux) SekaiUtilsInstall() error {
+	url := fmt.Sprintf("https://github.com/KiraCore/sekai/releases/download/%s/sekai-utils.sh", SEKAI_BRANCH)
+	downloadFile(url, "./sekai-utils.sh")
+	// cmd := exec.Command("./sekai-utils.sh", "sekaiUtilsSetup")
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
+	// err := cmd.Run()
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return err
+	// }
+	err := runCommand("./sekai-utils.sh", "sekaiUtilsSetup")
+	if err != nil {
+		return err
+	}
+	err = os.Chmod("./sekai-utils.sh", 0755)
+	if err != nil {
+		return err
+	}
+	err = os.Chmod(BIN_DEST, 0755)
+	if err != nil {
 		return err
 	}
 	return nil

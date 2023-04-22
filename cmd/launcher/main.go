@@ -22,4 +22,7 @@ func main() {
 	if err = launcherInterface.ToolsInstall(); err != nil {
 		panic(err)
 	}
+	if err = launcherInterface.SekaiUtilsInstall(); err != nil {
+		panic(err)
+	}
 }
