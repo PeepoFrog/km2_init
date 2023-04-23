@@ -22,6 +22,8 @@ type LauncherInterface interface {
 	SekaiUtilsInstall() error
 	//test
 	SekaiEnvInstall() error
+	SekaidInstall() error
+	InterxInstall() error
 }
 type Linux struct {
 }
@@ -59,6 +61,7 @@ const (
 	SEKAI_UTILS_DEST   = "/usr/local/bin/sekai-utils.sh"
 	SEKAI_ENV_DEST     = "/usr/local/bin/sekai-env.sh"
 	SEKAI_BRANCH       = "0.3.13.38"
+	INTERX_BRANCH      = "0.4.30"
 )
 
 func (*Linux) CosignCheck() error {
@@ -272,6 +275,109 @@ func (*Linux) SekaiEnvInstall() error {
 	}
 	return nil
 }
+
+// SEKAID INSTALATION
+func (*Linux) SekaidInstall() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll(homeDir + "/sekai")
+	if err != nil {
+		return err
+	}
+
+	err = os.Chdir(homeDir)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("git", "clone", "-b", "release/"+os.Getenv("SEKAI_BRANCH"), "https://github.com/KiraCore/sekai.git")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	err = os.Chdir(homeDir + "/sekai")
+	if err != nil {
+		return err
+	}
+
+	sekaiPath := homeDir + "/sekai"
+	err = os.Chmod(sekaiPath+"/scripts", 0777)
+	if err != nil {
+		return err
+	}
+
+	cmd = exec.Command(sekaiPath+"make", "install")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("FAILED")
+		return err
+	} else {
+		fmt.Println("SUCCESS installed sekaid", getVersion())
+	}
+	return nil
+}
+
+// INTERX INSTALLATION
+func (*Linux) InterxInstall() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error getting user's home directory:", err)
+		return err
+	}
+
+	interxDir := filepath.Join(homeDir, "interx")
+	if err := os.RemoveAll(interxDir); err != nil {
+		fmt.Println("Error removing existing interx directory:", err)
+		return err
+	}
+
+	if err := exec.Command("git", "clone", "-b", "release/"+INTERX_BRANCH, "https://github.com/KiraCore/interx.git", interxDir).Run(); err != nil {
+		fmt.Println("Error cloning interx repository:", err)
+		return err
+	}
+
+	if err := os.Chmod(homeDir+"./scripts", 0777); err != nil {
+		fmt.Println("Error changing permissions of ./scripts directory:", err)
+		return err
+	}
+
+	if err := exec.Command(homeDir+"make", "install").Run(); err != nil {
+		fmt.Println("Error installing interx:", err)
+		return err
+	}
+	fmt.Println("Interx installed successfully.")
+
+	if err := exec.Command(homeDir+"make", "test").Run(); err != nil {
+		fmt.Println("Error running interx tests:", err)
+		return err
+	}
+	fmt.Println("Interx tests passed successfully.")
+
+	if err := exec.Command(homeDir+"make", "test-local").Run(); err != nil {
+		fmt.Println("Error running interx local tests:", err)
+		return err
+	}
+	fmt.Println("Interx local tests passed successfully.")
+	return nil
+}
+
+func getVersion() string {
+	cmd := exec.Command("sekaid", "version")
+	out, err := cmd.Output()
+	if err != nil {
+		panic(err)
+	}
+	return string(out)
+}
+
 func downloadFile(url, fileName string) error {
 	resp, err := http.Get(url)
 	if err != nil {

@@ -7,25 +7,36 @@ import (
 func main() {
 	launcherInterface := launcher.LauncherInterface(&launcher.Linux{})
 	var err error
-	if err = launcherInterface.PrivilageCheck(); err != nil {
+	err = launcherInterface.PrivilageCheck()
+	if err != nil {
 		panic(err)
 	}
 	arch, platform := launcherInterface.CheckPlaform()
-	if err = launcherInterface.CosignCheck(); err != nil {
-		if err = launcherInterface.CosignInstall(arch, platform); err != nil {
+	err = launcherInterface.CosignCheck()
+	if err != nil {
+		err = launcherInterface.CosignInstall(arch, platform)
+		if err != nil {
 			panic(err)
 		}
 	}
-	if err = launcherInterface.WritePubKey(); err != nil {
+	err = launcherInterface.WritePubKey()
+	if err != nil {
 		panic(err)
 	}
-	if err = launcherInterface.ToolsInstall(); err != nil {
+	err = launcherInterface.ToolsInstall()
+	if err != nil {
 		panic(err)
 	}
-	if err = launcherInterface.SekaiUtilsInstall(); err != nil {
+	err = launcherInterface.SekaiUtilsInstall()
+	if err != nil {
 		panic(err)
 	}
-	if err = launcherInterface.SekaiEnvInstall(); err != nil {
+	err = launcherInterface.SekaiEnvInstall()
+	if err != nil {
+		panic(err)
+	}
+	err = launcherInterface.SekaidInstall()
+	if err != nil {
 		panic(err)
 	}
 }
