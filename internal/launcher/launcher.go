@@ -20,6 +20,8 @@ type LauncherInterface interface {
 	CosignInstall(architecture string, platform string) error
 	ToolsInstall() error
 	SekaiUtilsInstall() error
+	//test
+	SekaiEnvInstall() error
 }
 type Linux struct {
 }
@@ -37,11 +39,11 @@ func (*Linux) PrivilageCheck() error {
 			fmt.Printf("This application was started with sudo by user %s. Exiting.\n", sudoUser)
 			return nil
 		} else {
-			err = fmt.Errorf("This application should not be run as root. Exiting.")
+			err = fmt.Errorf("this application should not be run as root. exiting")
 			return err
 		}
 	}
-	err = fmt.Errorf("Non-root user detected. Proceeding with the application.")
+	err = fmt.Errorf("non-root user detected. proceeding with the application")
 	return err
 }
 
@@ -54,7 +56,8 @@ const (
 	COSIGN_HASH_ARM    = "8132cb2fb99a4c60ba8e03b079e12462c27073028a5d08c07ecda67284e0c88d"
 	COSIGN_HASH_AMD    = "169a53594c437d53ffc401b911b7e70d453f5a2c1f96eb2a736f34f6356c4f2b"
 	FILE_NAME          = "bash-utils.sh"
-	BIN_DEST           = "/usr/local/bin/sekai-utils.sh"
+	SEKAI_UTILS_DEST   = "/usr/local/bin/sekai-utils.sh"
+	SEKAI_ENV_DEST     = "/usr/local/bin/sekai-env.sh"
 	SEKAI_BRANCH       = "0.3.13.38"
 )
 
@@ -107,22 +110,22 @@ func (*Linux) CosignInstall(architecture string, platform string) error {
 	switch platform {
 	case "arm64":
 		if hash != COSIGN_HASH_ARM {
-			err = fmt.Errorf("Invalid checksum for cosign: %s\n", hash)
+			err = fmt.Errorf("invalid checksum for cosign: %s\n ", hash)
 			return err
 		}
 	case "amd64":
 		if hash != COSIGN_HASH_AMD {
-			err = fmt.Errorf("Invalid checksum for cosign: %s\n", hash)
+			err = fmt.Errorf("invalid checksum for cosign: %s\n ", hash)
 			return err
 		}
 	}
 
 	if err := os.Chmod(cosignFile, 0755); err != nil {
-		err = fmt.Errorf("Failed to make cosign executable: %v\n", err)
+		err = fmt.Errorf("failed to make cosign executable: %v\n ", err)
 		return err
 	}
 	if err := os.Rename(cosignFile, "/usr/local/bin/cosign"); err != nil {
-		err = fmt.Errorf("Failed to install cosign: %v\n", err)
+		err = fmt.Errorf("failed to install cosign: %v\n ", err)
 		return err
 	}
 
@@ -143,14 +146,14 @@ f+mU9F/Qbfq25bBWV2+NlYMJv3KvKHNtu3Jknt6yizZjUV4b8WGfKBzFYw==
 -----END PUBLIC KEY-----`
 	f, err := os.Create(KIRA_COSIGN_PUB)
 	if err != nil {
-		err = fmt.Errorf("Error creating file: %v\n", err)
+		err = fmt.Errorf("error creating file: %v\n ", err)
 		return err
 	}
 	defer f.Close()
 
 	_, err = fmt.Fprintf(f, "%s", pubKey)
 	if err != nil {
-		err = fmt.Errorf("Error writing to file: %v\n", err)
+		err = fmt.Errorf("error writing to file: %v\n ", err)
 		return err
 	}
 	fmt.Println("Public key written to file")
@@ -227,7 +230,43 @@ func (*Linux) SekaiUtilsInstall() error {
 	if err != nil {
 		return err
 	}
-	err = os.Chmod(BIN_DEST, 0755)
+	err = os.Chmod(SEKAI_UTILS_DEST, 0755)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (*Linux) SekaiEnvInstall() error {
+	url := fmt.Sprintf("https://github.com/KiraCore/sekai/releases/download/%s/sekai-env.sh", SEKAI_BRANCH)
+	err := downloadFile(url, "sekai-env.sh")
+	if err != nil {
+		return err
+	}
+	err = os.Chmod(SEKAI_ENV_DEST, 0755)
+	if err != nil {
+		return err
+	}
+	// TO DO IN FUTURE REPLACE ">>" COMMAND WITH INER GOLANG CODE
+	// IMPORTANT
+	// cmd := exec.Command("sh", "-c", "echo 'source /usr/local/bin/sekai-env.sh' >> /etc/profile && . /etc/profile")
+	// err = cmd.Run()
+	// if err != nil {
+	// 	return err
+	// }
+	filename := "/etc/profile"
+	content := "/usr/local/bin/sekai-env.sh"
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = f.WriteString(content + "\n")
+	if err != nil {
+		panic(err)
+	}
+	f.Close()
+	cmd := exec.Command("bash", "-c", "source /etc/profile")
+	err = cmd.Run()
 	if err != nil {
 		return err
 	}

@@ -25,4 +25,7 @@ func main() {
 	if err = launcherInterface.SekaiUtilsInstall(); err != nil {
 		panic(err)
 	}
+	if err = launcherInterface.SekaiEnvInstall(); err != nil {
+		panic(err)
+	}
 }
