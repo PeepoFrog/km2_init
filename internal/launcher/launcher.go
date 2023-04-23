@@ -160,6 +160,7 @@ f+mU9F/Qbfq25bBWV2+NlYMJv3KvKHNtu3Jknt6yizZjUV4b8WGfKBzFYw==
 		return err
 	}
 	fmt.Println("Public key written to file")
+	os.Setenv("KIRA_COSIGN_PUB", KIRA_COSIGN_PUB)
 	return nil
 }
 func (*Linux) CheckPlaform() (architecture string, platform string) {
@@ -208,8 +209,9 @@ func (*Linux) ToolsInstall() error {
 		return err
 	}
 	// Reload the profile
-	if err := runCommand(". /etc/profile"); err != nil {
+	if err := runCommand("source", "/etc/profile"); err != nil {
 		fmt.Printf("Failed to reload profile: %v\n", err)
+
 		return err
 	}
 	return nil
@@ -225,14 +227,26 @@ func (*Linux) SekaiUtilsInstall() error {
 	// 	fmt.Println(err)
 	// 	return err
 	// }
-	err := runCommand("./sekai-utils.sh", "sekaiUtilsSetup")
+	err := os.Chmod("./sekai-utils.sh", 0755)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
-	err = os.Chmod("./sekai-utils.sh", 0755)
-	if err != nil {
+	fmt.Println("HEEEEEEEEEEEREEEEEEEEEEEEEEEEEEEEE")
+	// err = runCommand("sudo", "./sekai-utils.sh", "sekaiUtilsSetup")
+	// if err != nil {
+	// 	return err
+	// }
+	cmd := exec.Command("sudo", "bash", "-c", "./sekai-utils.sh sekaiUtilsSetup")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
 		return err
 	}
+
+	fmt.Println("DOOOOOOOOOOOOOOONEEEEEEEE")
+
 	err = os.Chmod(SEKAI_UTILS_DEST, 0755)
 	if err != nil {
 		return err
@@ -396,7 +410,10 @@ func downloadFile(url, fileName string) error {
 }
 
 func verifySignature(fileName, sigName string) error {
+
+	fmt.Println(os.Getenv("KIRA_COSIGN_PUB"), fileName, sigName)
 	cosignCmd := exec.Command("cosign", "verify-blob", "--key", os.Getenv("KIRA_COSIGN_PUB"), "--signature", sigName, fileName)
+	fmt.Println("SIGNATURE IS: " + KIRA_COSIGN_PUB)
 	if err := cosignCmd.Run(); err != nil {
 		return err
 	}
@@ -404,9 +421,14 @@ func verifySignature(fileName, sigName string) error {
 }
 
 func runCommand(name string, args ...string) error {
-	cmd := exec.Command(name, args...)
+	input := []string{name}
+	input = append(input, args...)
+	arguments := strings.Join(input, " ")
+	// cmd := exec.Command("bash", "-c" ,name, args...)
+	cmd := exec.Command("bash", "-c", arguments)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	if err := cmd.Run(); err != nil {
 		return err
 	}
