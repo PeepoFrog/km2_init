@@ -217,7 +217,7 @@ func (*Linux) ToolsInstall() error {
 	return nil
 }
 func (*Linux) SekaiUtilsInstall() error {
-	url := fmt.Sprintf("https://github.com/KiraCore/sekai/releases/download/%s/sekai-utils.sh", SEKAI_BRANCH)
+	url := fmt.Sprintf("https://github.com/KiraCore/sekai/releases/download/v%s/sekai-utils.sh", SEKAI_BRANCH)
 	downloadFile(url, "./sekai-utils.sh")
 	// cmd := exec.Command("./sekai-utils.sh", "sekaiUtilsSetup")
 	// cmd.Stdout = os.Stdout
@@ -232,7 +232,7 @@ func (*Linux) SekaiUtilsInstall() error {
 		fmt.Println(err)
 		return err
 	}
-	fmt.Println("HEEEEEEEEEEEREEEEEEEEEEEEEEEEEEEEE")
+
 	// err = runCommand("sudo", "./sekai-utils.sh", "sekaiUtilsSetup")
 	// if err != nil {
 	// 	return err
@@ -245,8 +245,6 @@ func (*Linux) SekaiUtilsInstall() error {
 		return err
 	}
 
-	fmt.Println("DOOOOOOOOOOOOOOONEEEEEEEE")
-
 	err = os.Chmod(SEKAI_UTILS_DEST, 0755)
 	if err != nil {
 		return err
@@ -254,15 +252,17 @@ func (*Linux) SekaiUtilsInstall() error {
 	return nil
 }
 func (*Linux) SekaiEnvInstall() error {
-	url := fmt.Sprintf("https://github.com/KiraCore/sekai/releases/download/%s/sekai-env.sh", SEKAI_BRANCH)
-	err := downloadFile(url, "sekai-env.sh")
+	url := fmt.Sprintf("https://github.com/KiraCore/sekai/releases/download/v%s/sekai-env.sh", SEKAI_BRANCH)
+	err := downloadFile(url, SEKAI_ENV_DEST)
 	if err != nil {
 		return err
 	}
 	err = os.Chmod(SEKAI_ENV_DEST, 0755)
 	if err != nil {
+		fmt.Println("ERROR HERE")
 		return err
 	}
+	fmt.Println("ERROR HERE DONE")
 	// TO DO IN FUTURE REPLACE ">>" COMMAND WITH INER GOLANG CODE
 	// IMPORTANT
 	// cmd := exec.Command("sh", "-c", "echo 'source /usr/local/bin/sekai-env.sh' >> /etc/profile && . /etc/profile")
@@ -274,6 +274,7 @@ func (*Linux) SekaiEnvInstall() error {
 	content := "/usr/local/bin/sekai-env.sh"
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
+
 		panic(err)
 	}
 
@@ -292,22 +293,22 @@ func (*Linux) SekaiEnvInstall() error {
 
 // SEKAID INSTALATION
 func (*Linux) SekaidInstall() error {
-	homeDir, err := os.UserHomeDir()
+	// homeDir, err := os.UserHomeDir()
+	// if err != nil {
+	// 	return err
+	// }
+
+	err := os.RemoveAll("/home/d/sekai")
 	if err != nil {
 		return err
 	}
 
-	err = os.RemoveAll(homeDir + "/sekai")
+	err = os.Chdir("/home/d/")
 	if err != nil {
 		return err
 	}
 
-	err = os.Chdir(homeDir)
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.Command("git", "clone", "-b", "release/"+os.Getenv("SEKAI_BRANCH"), "https://github.com/KiraCore/sekai.git")
+	cmd := exec.Command("git", "clone", "-b", "v"+SEKAI_BRANCH, "https://github.com/KiraCore/sekai.git")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -315,27 +316,33 @@ func (*Linux) SekaidInstall() error {
 		return err
 	}
 
-	err = os.Chdir(homeDir + "/sekai")
+	err = os.Chdir("/home/d/sekai")
 	if err != nil {
+		fmt.Println("ERROR 1 CHECK")
 		return err
 	}
+	fmt.Println("ERROR 1 CHECK DONE")
 
-	sekaiPath := homeDir + "/sekai"
+	sekaiPath := "/home/d/sekai"
 	err = os.Chmod(sekaiPath+"/scripts", 0777)
 	if err != nil {
+		fmt.Println("ERROR 2 CHECK")
+
 		return err
 	}
+	fmt.Println("ERROR 2 CHECK DONE")
 
-	cmd = exec.Command(sekaiPath+"make", "install")
+	cmd = exec.Command(sekaiPath+"/make", "install")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
+		fmt.Println(cmd.Args)
 		fmt.Println("FAILED")
 		return err
-	} else {
-		fmt.Println("SUCCESS installed sekaid", getVersion())
 	}
+	fmt.Println("SUCCESS installed sekaid", getVersion())
+
 	return nil
 }
 
