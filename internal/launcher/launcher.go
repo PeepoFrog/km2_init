@@ -11,15 +11,15 @@ import (
 type LauncherInterface interface {
 	PrivilageCheck() error
 	CheckPlaform() (architecture string, platform string)
-	WritePubKey() error
-	CosignCheck() error
-	CosignInstall(architecture string, platform string) error
-	ToolsInstall() error
-	SekaiUtilsInstall() error
-	//test
-	SekaiEnvInstall() error
-	SekaidInstall() error
-	InterxInstall() error
+	// WritePubKey() error
+	// CosignCheck() error
+	// CosignInstall(architecture string, platform string) error
+	// ToolsInstall() error
+	// SekaiUtilsInstall() error
+	// //test
+	// SekaiEnvInstall() error
+	// SekaidInstall() error
+	// InterxInstall() error
 }
 type Linux struct {
 }

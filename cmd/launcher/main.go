@@ -1,42 +1,38 @@
 package main
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/mrlutik/km2_init/internal/cosign"
+	"github.com/mrlutik/km2_init/internal/docker"
 	"github.com/mrlutik/km2_init/internal/launcher"
+)
+
+const (
+	KIRA_BASE_VERSION = "0.13.7"
 )
 
 func main() {
 	launcherInterface := launcher.LauncherInterface(&launcher.Linux{})
-	var err error
-	err = launcherInterface.PrivilageCheck()
+	dockerBaseImageName := "ghcr.io/kiracore/docker/kira-base:v" + KIRA_BASE_VERSION
+	err := launcherInterface.PrivilageCheck()
 	if err != nil {
 		panic(err)
 	}
 	arch, platform := launcherInterface.CheckPlaform()
-	// err = launcherInterface.CosignCheck()
-	// if err != nil {
-	// 	err = launcherInterface.CosignInstall(arch, platform)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// }
-	// 	err = launcherInterface.WritePubKey()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	err = launcherInterface.ToolsInstall()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	err = launcherInterface.SekaiUtilsInstall()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	err = launcherInterface.SekaiEnvInstall()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	err = launcherInterface.SekaidInstall()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
+	fmt.Println(arch, platform)
+	ctx := context.Background()
+	err = docker.PullImage(ctx, dockerBaseImageName)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("test")
+
+	b, err := cosign.VerifyImageSignature(ctx, dockerBaseImageName, cosign.DockerImagePubKey)
+	if err != nil {
+		fmt.Println(b)
+		panic(err)
+	}
+	fmt.Println(b)
 }
