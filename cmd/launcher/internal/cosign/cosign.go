@@ -19,6 +19,8 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/IrzBQYeMwvKa44/DF/HB7XDpnE+
 f+mU9F/Qbfq25bBWV2+NlYMJv3KvKHNtu3Jknt6yizZjUV4b8WGfKBzFYw==
 -----END PUBLIC KEY-----`
 
+// my implementation
+
 func VerifyImageSignature(ctx context.Context, imageRef, pubKey string) (bool, error) {
 
 	// Decode the PEM-encoded public key data
