@@ -7,16 +7,6 @@ import (
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/cosign"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/docker"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/helpers"
-	// "github.com/mrlutik/km2_init/cmd/launcher/internal/helpres"
-	// "github.com/mrlutik/km2_init/cmd/launcher/internal/cosign"
-	// "github.com/mrlutik/km2_init/cmd/launcher/internal/docker"
-	// // "github.com/mrlutik/km2_init/cmd/launcher/internal/cosign"
-	// "github.com/mrlutik/km2_init/cmd/launcher/internal/docker"
-	// // "github.com/mrlutik/km2_init/internal/cosign"
-	// "github.com/mrlutik/km2_init/internal/docker"
-	// "github.com/mrlutik/km2_init/cmd/launcher/cosign"
-	// "github.com/mrlutik/km2_init/cmd/launcher/docker"
-	// "github.com/mrlutik/km2_init/cmd/launcher/helpres"
 )
 
 const (
