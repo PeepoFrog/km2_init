@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/cosign"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/docker"
@@ -41,20 +40,12 @@ func main() {
 			panic(err)
 		}
 	}
-
 	fmt.Println("docker installed")
-
-	os.Exit(0)
-	if err != nil {
-		panic(err)
-	}
 
 	err = docker.PullImage(ctx, dockerBaseImageName)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("test")
-
 	b, err := cosign.VerifyImageSignature(ctx, dockerBaseImageName, DockerImagePubKey)
 	if err != nil {
 		fmt.Println(b)
