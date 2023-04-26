@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/cosign"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/docker"
@@ -28,6 +29,26 @@ func main() {
 	arch, platform := launcherInterface.CheckPlaform()
 	fmt.Println(arch, platform)
 	ctx := context.Background()
+	err = docker.VerifyDockerInstallation(ctx)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println("INSTALING DOCKER")
+		if err = launcherInterface.InstallDocker(); err != nil {
+			panic(err)
+		}
+		err = docker.VerifyDockerInstallation(ctx)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	fmt.Println("docker installed")
+
+	os.Exit(0)
+	if err != nil {
+		panic(err)
+	}
+
 	err = docker.PullImage(ctx, dockerBaseImageName)
 	if err != nil {
 		panic(err)
