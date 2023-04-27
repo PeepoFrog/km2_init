@@ -18,31 +18,36 @@ f+mU9F/Qbfq25bBWV2+NlYMJv3KvKHNtu3Jknt6yizZjUV4b8WGfKBzFYw==
 -----END PUBLIC KEY-----`
 
 func main() {
-
-	launcherInterface := helpers.LauncherInterface(&helpers.Linux{})
-	dockerBaseImageName := "ghcr.io/kiracore/docker/kira-base:v" + KIRA_BASE_VERSION
-	err := launcherInterface.PrivilageCheck()
+	dockerClient, err := docker.GetDockerClient()
 	if err != nil {
 		panic(err)
 	}
+	defer dockerClient.Cli.Close()
+	launcherInterface := helpers.LauncherInterface(&helpers.Linux{})
+	dockerBaseImageName := "ghcr.io/kiracore/docker/kira-base:v" + KIRA_BASE_VERSION
+	err = launcherInterface.PrivilageCheck()
+	if err != nil {
+		panic(err)
+	}
+
 	arch, platform := launcherInterface.CheckPlaform()
 	fmt.Println(arch, platform)
 	ctx := context.Background()
-	err = docker.VerifyDockerInstallation(ctx)
+	err = dockerClient.VerifyDockerInstallation(ctx)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("INSTALING DOCKER")
 		if err = launcherInterface.InstallDocker(); err != nil {
 			panic(err)
 		}
-		err = docker.VerifyDockerInstallation(ctx)
+		err = dockerClient.VerifyDockerInstallation(ctx)
 		if err != nil {
 			panic(err)
 		}
 	}
 	fmt.Println("docker installed")
 
-	err = docker.PullImage(ctx, dockerBaseImageName)
+	err = dockerClient.PullImage(ctx, dockerBaseImageName)
 	if err != nil {
 		panic(err)
 	}
