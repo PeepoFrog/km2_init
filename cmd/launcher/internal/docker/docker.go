@@ -66,6 +66,7 @@ func (DC *DockerClient) PullImage(ctx context.Context, imageName string) error {
 
 	return nil
 }
+
 func (DC *DockerClient) RunContainer(ctx context.Context, image string) error {
 
 	// cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
