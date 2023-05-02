@@ -1,4 +1,4 @@
-https://www.notion.so/kira-network/SEKAI-Installation-be79e6d6514b43fb8de1ffa44ba9a344
+# https://www.notion.so/kira-network/SEKAI-Installation-be79e6d6514b43fb8de1ffa44ba9a344
 
 #Завантаження docker base-image
 IMG_VERSION="v0.13.7" && \
@@ -94,4 +94,10 @@ fi
 
 
 
+#
+#
+#
+#
+#
+# З А П У С К А Є М      І Н Т Е Р А К С  
 
