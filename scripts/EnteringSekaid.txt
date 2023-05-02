@@ -51,16 +51,12 @@ sekaid init --overwrite --chain-id=$NETWORK_NAME "KIRA TEST LOCAL VALIDATOR NODE
 
 echo $(addAccount validator | jq .mnemonic | xargs) > $SEKAID_HOME/sekai.mnemonic
 
-echo $(addAccount interx | jq .mnemonic | xargs) > $INTERXD_HOME/interx.mnemonic
-
-echo $(addAccount faucet | jq .mnemonic | xargs) > $INTERXD_HOME/faucet.mnemonic
 
 
 sekaid add-genesis-account $(showAddress validator) 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME
 
-sekaid add-genesis-account $(showAddress faucet) 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME
-
 sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" --home=$SEKAID_HOME
+
 
 
 
