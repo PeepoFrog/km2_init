@@ -1,9 +1,23 @@
-# https://www.notion.so/kira-network/SEKAI-Installation-be79e6d6514b43fb8de1ffa44ba9a344
+#how to start kira base  
+#IMG_VERSION="v0.13.7" && \
+BASE_NAME="kiraBaseImageSekaid" && BASE_IMG="ghcr.io/kiracore/docker/kira-base:$IMG_VERSION" && \
+sudo docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+
+sudo docker start -i kiraBaseImageSekaid
+###
+
+
+
+
+
+
+
+
 
 #Завантаження docker base-image для секайд
 IMG_VERSION="v0.13.7" && \
 BASE_NAME="sekaiTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:$IMG_VERSION" && \
-sudo docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+sudo docker run -i -t -v testVolume:/data -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
 
 #запуск в інтерактивному моді base-image
 sudo docker start -i sekaiTest
@@ -40,18 +54,21 @@ source ~/sekai/scripts/sekai-utils.sh
 
 #імя нетворку
 cd $HOME && \
-NETWORK_NAME="mynetwork" && \
+NETWORK_NAME="mynetwork-1" && \
 setGlobEnv NETWORK_NAME $NETWORK_NAME && \
-setGlobEnv SEKAID_HOME ~/.sekaid-$NETWORK_NAME && \
+setGlobEnv SEKAID_HOME /data/.sekaid-$NETWORK_NAME && \
+setGlobEnv INTERXD_HOME /data/.interxd-$NETWORK_NAME && \
+loadGlobEnvs && \
 rm -rfv "$SEKAID_HOME" "$INTERXD_HOME" && \
-loadGlobEnvs
+mkdir -p "$SEKAID_HOME" "$INTERXD_HOME/cache"
+
 
 #створюєм новий акаунт валідатора додаєм його і ставим його як генезіс акаунт 
 sekaid init --overwrite --chain-id=$NETWORK_NAME "KIRA TEST LOCAL VALIDATOR NODE" --home=$SEKAID_HOME
 
 echo $(addAccount validator | jq .mnemonic | xargs) > $SEKAID_HOME/sekai.mnemonic
 echo $(addAccount faucet | jq .mnemonic | xargs) > $INTERXD_HOME/faucet.mnemonic
-
+echo $(addAccount interx | jq .mnemonic | xargs) > $INTERXD_HOME/interx.mnemonic
 sekaid add-genesis-account $(showAddress validator) 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME
 sekaid add-genesis-account $(showAddress faucet) 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME
 
