@@ -47,10 +47,14 @@ git clone https://github.com/KiraCore/sekai.git -b $SEKAI_VERSION $SEKAI_REPO
 # встановлення секайду
 cd $SEKAI_REPO && chmod -R 777 ./scripts && \
 make install && echo "SUCCESS installed sekaid $(sekaid version)" || echo "FAILED"
-
+#sudo -E env "PATH=$PATH" make install
 #ініціація утілз функцій (по дефолту чомусь не ініціюються при встановлені)
 . ~/sekai/scripts/sekai-utils.sh && \
 source ~/sekai/scripts/sekai-utils.sh
+
+GOBIN="${GOROOT}/bin" &&\
+cp /sekaid $GOBIN && echo "SUCCESS sekaid copied" || echo "FAILED sekaid copied" 
+
 
 #імя нетворку
 cd $HOME && \
@@ -75,7 +79,7 @@ sekaid add-genesis-account $(showAddress faucet) 150000000000000ukex,30000000000
 sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" --home=$SEKAID_HOME
 
 
-
+    
 
 # тут хз що
 cat > /etc/systemd/system/sekai.service << EOL
@@ -111,3 +115,7 @@ fi
 
 
 
+
+
+
+    

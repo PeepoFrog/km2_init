@@ -21,7 +21,7 @@ sudo docker run -i -t -v testVolume:/data  -d --privileged --net bridge --name $
 sudo docker start -i $BASE_NAME_INTERAX
 
 #встановлення голангу
-GO_VER="1.20.3"&&\\
+GO_VER="1.20.4"&&\\
 mkdir ~/tmp || cd ~/tmp || echo "Entered tmp dir" &&\
 wget "https://go.dev/dl/go${GO_VER}.linux-amd64.tar.gz" && \
 rm -rf /usr/local/go && tar -C /usr/local -xzf "go${GO_VER}.linux-amd64.tar.gz" || echo "Go installed" && \
@@ -35,12 +35,16 @@ setGlobEnv NETWORK_NAME $NETWORK_NAME && \
 INTERX_BRANCH="v0.4.31" && \
 DEFAULT_INTERX_PORT=11000 && \
 loadGlobEnvs
-
+#apt install gcc
 # встановлення інераксу 
+INTERX_BRANCH="v0.4.31" && \
 cd $HOME && rm -fvr ./interx && \
 git clone https://github.com/KiraCore/interx.git -b "release/$INTERX_BRANCH" && \
 cd ./interx && chmod -R 777 ./scripts && \
 make install && echo "SUCCESS" || echo "FAILED" 
+cp /interxd $GOBIN && echo "SUCCESS interxd copied" || echo "FAILED interxd copied" 
+
+
 
 #make test && echo "SUCCESS" || echo "FAILED" 
 #make test-local && echo "SUCCESS" || echo "FAILED" 
@@ -63,6 +67,7 @@ DEFAULT_GRPC_PORT=9090 && \
 DEFAULT_RPC_PORT=26657 && \
 DEFAULT_INTERX_PORT=11000 && \
 PING_TARGET="127.0.0.1" && \
+INTERNAL_API_PORT=11111
 CFG_grpc="dns:///$PING_TARGET:$DEFAULT_GRPC_PORT" && \
 CFG_rpc="http://$PING_TARGET:$DEFAULT_RPC_PORT"
 
@@ -85,16 +90,18 @@ mkdir -p "$SEKAID_HOME" "$INTERXD_HOME/cache"
 
 
 
-# тут треба дістати faucet акаун з секайда напевно
-
-interxd init --cache_dir="$INTERXD_HOME/cache" --home="$INTERXD_HOME" --grpc="$CFG_grpc" --rpc="$CFG_rpc" --port="$INTERNAL_API_PORT" \
+# тут треба дістати faucet акаун з секайда напевно 
+#--port="$INTERNAL_API_PORT"
+#
+#--validator_node_id="$(globGet validator_node_id)"
+interxd init --cache_dir="$INTERXD_HOME/cache" --home="$INTERXD_HOME" --grpc="$CFG_grpc" --rpc="$CFG_rpc" --port="11111" \
     --signing_mnemonic="$INTERXD_HOME/interx.mnemonic" \
     --faucet_mnemonic="$INTERXD_HOME/faucet.mnemonic" \
     --port="$DEFAULT_INTERX_PORT" \
     --node_type="validator" \
     --seed_node_id="" \
     --sentry_node_id="" \
-    --validator_node_id="$(globGet validator_node_id)" \
+    --validator_node_id="227662641e03ae6cc63f85c75e8ffb1f45bf7be9" \
     --addrbook="$(globFile KIRA_ADDRBOOK)" \
     --faucet_time_limit=30 \
     --faucet_amounts="100000ukex,20000000test,300000000000000000samolean,1lol" \
@@ -117,17 +124,19 @@ LimitNOFILE=4096
 [Install]
 WantedBy=default.target
 EOL
-
- 
- INTERX_GATEWAY="127.0.0.1:$DEFAULT_INTERX_PORT"
+        
+    
+ INTERX_GATEWAY="127.0.0.1:11111"
 systemctl enable interx.service 
 systemctl start interx.service
-
-
-
+    
+        
+    
 echoInfo "INFO: Waiting for next block to be produced..."
 BLOCK_HEIGHT=$(curl --fail $INTERX_GATEWAY/api/status | jsonParse "interx_info.latest_block_height" || echo "0")
+    
 timeout 60 sekai-utils awaitBlocks 2
+
 NEXT_BLOCK_HEIGHT=$(curl --fail $INTERX_GATEWAY/api/status | jsonParse "interx_info.latest_block_height" || echo "0")
 
 if [ $BLOCK_HEIGHT -ge $NEXT_BLOCK_HEIGHT ] ; then
@@ -136,3 +145,35 @@ fi
 
 echoInfo "INFO: Printing interx status..."
 curl --fail $INTERX_GATEWAY/api/status | jq
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

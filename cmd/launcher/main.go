@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/cosign"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/docker"
@@ -10,7 +11,7 @@ import (
 )
 
 const (
-	KIRA_BASE_VERSION = "0.13.7"
+	KIRA_BASE_VERSION = "v0.13.7"
 )
 const DockerImagePubKey = `-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/IrzBQYeMwvKa44/DF/HB7XDpnE+
@@ -24,7 +25,8 @@ func main() {
 	}
 	defer dockerClient.Cli.Close()
 	launcherInterface := helpers.LauncherInterface(&helpers.Linux{})
-	dockerBaseImageName := "ghcr.io/kiracore/docker/kira-base:v" + KIRA_BASE_VERSION
+	// or ghcr.io/kiracore/docker/base-image:
+	dockerBaseImageName := "ghcr.io/kiracore/docker/kira-base:" + KIRA_BASE_VERSION
 	err = launcherInterface.PrivilageCheck()
 	if err != nil {
 		panic(err)
@@ -46,7 +48,7 @@ func main() {
 		}
 	}
 	fmt.Println("docker installed")
-
+	os.Exit(1)
 	err = dockerClient.PullImage(ctx, dockerBaseImageName)
 	if err != nil {
 		panic(err)
@@ -57,4 +59,11 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(b)
+	os.Exit(1)
+
+
+
+
+
+		
 }

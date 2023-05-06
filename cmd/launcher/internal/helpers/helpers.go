@@ -165,7 +165,7 @@ func (l *Linux) InstallDocker() error {
 	// if output, err = cmd.Output(); err != nil {
 	// 	return err
 	// }
-	if output, err = l.RunBashCommandWithSudo(`apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`); err != nil {
+	if output, err = l.RunBashCommandWithSudo(`apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y`); err != nil {
 		return err
 	}
 	fmt.Println(string(output))
