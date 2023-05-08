@@ -36,6 +36,7 @@ INTERX_BRANCH="v0.4.31" && \
 DEFAULT_INTERX_PORT=11000 && \
 loadGlobEnvs
 #apt install gcc
+
 # встановлення інераксу 
 INTERX_BRANCH="v0.4.31" && \
 cd $HOME && rm -fvr ./interx && \
