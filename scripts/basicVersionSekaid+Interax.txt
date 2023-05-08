@@ -38,6 +38,8 @@ sekaid add-genesis-account faucet 150000000000000ukex,300000000000000test,200000
 
 sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" 
 
+sed -i 's/laddr = "tcp:\/\/127.0.0.1:26657"/laddr = "tcp:\/\/0.0.0.0:26657"/' $SEKAID_HOME/config/config.toml
+
 #sekaid start 
 
 cat > /etc/systemd/system/sekai.service << EOL
