@@ -75,7 +75,7 @@ sudo docker run -i -t -v testVolume:/data  -d --privileged --net bridge --name $
 sudo docker start -i $BASE_NAME_INTERAX
 
 wget https://github.com/KiraCore/interx/releases/download/v0.4.32/interx-linux-amd64.deb
-./apt install interx-linux-amd64.deb
+apt install ./interx-linux-amd64.deb
 
 DEFAULT_GRPC_PORT=9090 && \
 DEFAULT_RPC_PORT=26657 && \
