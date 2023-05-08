@@ -15,30 +15,31 @@ apt install ./sekai-linux-amd64.deb
 NETWORK_NAME="PEPEGENETWORK-1" && \
 SEKAID_HOME=~/.sekaid-$NETWORK_NAME 
 
-sekaid init --overwrite --chain-id=$NETWORK_NAME "PEPEGA NETWORK"  
+sekaid init --overwrite --chain-id=$NETWORK_NAME "PEPEGA NETWORK" --home=$SEKAID_HOME
 
 sekaid keys add validator --keyring-backend=test --home=$SEKAID_HOME --output=json | jq 
 
 mkdir $HOME/mnemonics
 
-sekaid keys add "validator" --keyring-backend=test --output=json | jq .mnemonic > $HOME/mnemonics/sekai.mnemonic
-sekaid keys add "faucet" --keyring-backend=test --output=json | jq .mnemonic > $HOME/mnemonics/faucet.mnemonic
+sekaid keys add "validator" --keyring-backend=test --home=$SEKAID_HOME --output=json | jq .mnemonic > $HOME/mnemonics/sekai.mnemonic
+sekaid keys add "faucet" --keyring-backend=test --home=$SEKAID_HOME --output=json | jq .mnemonic > $HOME/mnemonics/faucet.mnemonic
 
 #echo $(sekaid keys show "validator" --keyring-backend=test --output=json | jq .address)
 #проблема з лампаки потрібно копіювати і вставляти в код нижче без лапок 
 #valAddress=$(sekaid keys show "validator" --keyring-backend=test --output=json | jq .address) 
-sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test 
+sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test  --home=$SEKAID_HOME
 
 
 
 #echo $(sekaid keys show "faucet" --keyring-backend=test --output=json | jq .address)
 #проблема з змінною facAddress а саме лампаки потрібно копіювати і вставляти в код нижче без лапок 
 #facAddress=$(sekaid keys show "faucet" --keyring-backend=test --output=json | jq .address) 
-sekaid add-genesis-account faucet 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test 
+sekaid add-genesis-account faucet 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME
 
-sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" 
+sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" --home=$SEKAID_HOME
 sed -i 's/laddr = "tcp:\/\/127.0.0.1:26657"/laddr = "tcp:\/\/0.0.0.0:26657"/' $SEKAID_HOME/config/config.toml
-#sekaid start 
+sed -i 's/laddr = "tcp:\/\/127.0.0.1:26657"/laddr = "tcp:\/\/0.0.0.0:26657"/' $HOME/.sekaid/config/config.toml
+#sekaid start --home=$SEKAID_HOME
 
 cat > /etc/systemd/system/sekai.service << EOL
 [Unit]
@@ -49,7 +50,7 @@ MemorySwapMax=0
 Type=simple
 User=root
 WorkingDirectory=/root
-ExecStart=/bin/sekaid start --trace
+ExecStart=/bin/sekaid start --trace --home=$SEKAID_HOME
 Restart=always
 RestartSec=5
 LimitNOFILE=4096
