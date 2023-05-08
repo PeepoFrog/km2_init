@@ -1,6 +1,6 @@
 IMG_VERSION="v0.13.7" && \
 BASE_NAME="sekaiTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:$IMG_VERSION" && \
-sudo docker run -i -t -v testVolume:/data -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+sudo docker run -i -t -v testVolume:/data -d -p 9090:9090 -p 26657:26657 --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash 
 
 #запуск в інтерактивному моді base-image
 sudo docker start -i sekaiTest
@@ -13,13 +13,12 @@ apt install ./sekai-linux-amd64.deb
 #apt  install jq
 
 NETWORK_NAME="PEPEGENETWORK-1" && \
-SEKAID_HOME=~/.sekaid-$NETWORK_NAME && \
+SEKAID_HOME=~/.sekaid-$NETWORK_NAME 
 
 sekaid init --overwrite --chain-id=$NETWORK_NAME "PEPEGA NETWORK"  
-sekaid keys add validator --keyring-backend=test --home=$SEKAID_HOME --output=json | jq
 
+sekaid keys add validator --keyring-backend=test --home=$SEKAID_HOME --output=json | jq 
 
- 
 mkdir $HOME/mnemonics
 
 sekaid keys add "validator" --keyring-backend=test --output=json | jq .mnemonic > $HOME/mnemonics/sekai.mnemonic
@@ -39,14 +38,51 @@ sekaid add-genesis-account faucet 150000000000000ukex,300000000000000test,200000
 
 sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" 
 
-sekaid start 
+#sekaid start 
+
+cat > /etc/systemd/system/sekai.service << EOL
+[Unit]
+Description=Local KIRA Test Network
+After=network.target
+[Service]
+MemorySwapMax=0
+Type=simple
+User=root
+WorkingDirectory=/root
+ExecStart=/bin/sekaid start --trace
+Restart=always
+RestartSec=5
+LimitNOFILE=4096
+[Install]
+WantedBy=default.target
+EOL
+
+# активуєм сервіс секайду   
+systemctl enable sekai 
+# запускаєм його
+systemctl start sekai
 
 
 
+######### INTERAX ruinning
 
-######### INTERAX INSTALLING
 
-curl https://github.com/KiraCore/interx/releases/download/v0.4.32/interx-linux-amd64.deb
+IMG_VERSION="v0.13.7" && \
+BASE_NAME_INTERAX="interaxTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:$IMG_VERSION" && \
+sudo docker run -i -t -v testVolume:/data  -d --privileged --net bridge --name $BASE_NAME_INTERAX --hostname test.local $BASE_IMG /bin/bash
+
+#запуск в інтерактивному моді base-image
+sudo docker start -i $BASE_NAME_INTERAX
+
+wget https://github.com/KiraCore/interx/releases/download/v0.4.32/interx-linux-amd64.deb
+./apt install interx-linux-amd64.deb
+
+DEFAULT_GRPC_PORT=9090 && \
+DEFAULT_RPC_PORT=26657 && \
+PING_TARGET="172.17.0.2"
+
+interx init --rpc="http://$PING_TARGET:$DEFAULT_RPC_PORT" --grpc="dns:///$PING_TARGET:$DEFAULT_GRPC_PORT" 
+interx start 
 
 
 
