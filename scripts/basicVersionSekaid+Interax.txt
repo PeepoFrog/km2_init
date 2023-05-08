@@ -1,39 +1,16 @@
-GO_VER="1.20.3"&&\\
-mkdir ~/tmp || cd ~/tmp || echo "Entered tmp dir" &&\
-wget "https://go.dev/dl/go${GO_VER}.linux-amd64.tar.gz" && \
-rm -rf /usr/local/go && tar -C /usr/local -xzf "go${GO_VER}.linux-amd64.tar.gz" || echo "Go installed" && \
-echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.profile && \
-source ~/.profile 
 
-
-
-
-SEKAI_VERSION="v0.3.14" && \
-SEKAI_REPO="$HOME/sekai"
-
-cd $HOME && \
-rm -fvr $SEKAI_REPO && mkdir $SEKAI_REPO && \
-git clone https://github.com/KiraCore/sekai.git -b $SEKAI_VERSION $SEKAI_REPO 
-
-apt install make
-
-cd $SEKAI_REPO && chmod -R 777 ./scripts && \
-make install && echo "SUCCESS installed sekaid $(sekaid version)" || echo "FAILED"
-#sudo -E env "PATH=$PATH" make install
-#ініціація утілз функцій (по дефолту чомусь не ініціюються при встановлені)
-. ~/sekai/scripts/sekai-utils.sh && \
-source ~/sekai/scripts/sekai-utils.sh
-
-GOBIN="${GOROOT}/bin" &&\
-cp /sekaid $GOBIN && echo "SUCCESS sekaid copied" || echo "FAILED sekaid copied" 
-
+wget https://github.com/KiraCore/sekai/releases/download/v0.3.14/sekai-linux-amd64.deb
+apt install ./sekai-linux-amd64.deb
 apt  install jq
 
-NETWORK_NAME="PEPEGE_NETWORK-1" && \
+NETWORK_NAME="PEPEGENETWORK-1" && \
 SEKAID_HOME=~/.sekaid-$NETWORK_NAME && \
 
-sekaid init --overwrite "PEPEGA NETWORK"  
+sekaid init --overwrite --chain-id=$NETWORK_NAME "PEPEGA NETWORK"  
+sekaid keys add validator --keyring-backend=test --home=$SEKAID_HOME --output=json | jq
 
+
+ 
 mkdir $HOME/mnemonics
 
 sekaid keys add "validator" --keyring-backend=test --output=json | jq .mnemonic > $HOME/mnemonics/sekai.mnemonic
@@ -50,7 +27,17 @@ sekaid add-genesis-account $valAddress 150000000000000ukex,300000000000000test,2
 #проблема з змінною facAddress а саме лампаки потрібно копіювати і вставляти в код нижче без лапок 
 facAddress=$(sekaid keys show "faucet" --keyring-backend=test --output=json | jq .address) 
 sekaid add-genesis-account $facAddress 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test 
+
+sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" 
+
 sekaid start 
+
+
+
+
+######### INTERAX INSTALLING
+
+curl https://github.com/KiraCore/interx/releases/download/v0.4.32/interx-linux-amd64.deb
 
 
 
