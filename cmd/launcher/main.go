@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/go-github/github"
+	"github.com/mrlutik/km2_init/cmd/launcher/internal/adapters"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/cosign"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/docker"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/helpers"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -25,8 +28,7 @@ func main() {
 	}
 	defer dockerClient.Cli.Close()
 	launcherInterface := helpers.LauncherInterface(&helpers.Linux{})
-	// or ghcr.io/kiracore/docker/base-image:
-	dockerBaseImageName := "ghcr.io/kiracore/docker/kira-base:" + KIRA_BASE_VERSION
+	dockerBaseImageName := "ghcr.io/kiracore/docker/base-image:" + KIRA_BASE_VERSION
 	err = launcherInterface.PrivilageCheck()
 	if err != nil {
 		panic(err)
@@ -47,8 +49,8 @@ func main() {
 			panic(err)
 		}
 	}
+
 	fmt.Println("docker installed")
-	os.Exit(1)
 	err = dockerClient.PullImage(ctx, dockerBaseImageName)
 	if err != nil {
 		panic(err)
@@ -59,11 +61,37 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(b)
+	r := adapters.Repositories{}
+	kiraRepos := []string{"sekai", "interx"}
+	kiraGit := "KiraCore"
+	for _, v := range kiraRepos {
+
+		r.Set(kiraGit, v)
+		fmt.Println(r.Get())
+	}
+
+	fmt.Println(os.LookupEnv("GITHUB_TOKEN"))
+
+	r = adapters.Fetch(r, os.Getenv("GITHUB_TOKEN"))
+	fmt.Println(r)
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	githubClient := github.NewClient(tc)
+	// goto FINISH
+	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "sekai", "sekai-linux-amd64.deb")
+	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "interx", "interx-linux-amd64.deb")
+	// FINISH:
+	// err = dockerClient.SendFileToDocker(ctx, "interaxTest", "/", "./interx-linux-amd64.deb")
+
+	if err != nil {
+		panic(err)
+	}
+	err = dockerClient.SendFileToContainer(ctx, "interx-linux-amd64.deb", "/", "interaxTest")
+	if err != nil {
+		fmt.Println(err)
+	}
 	os.Exit(1)
 
-
-
-
-
-		
 }
