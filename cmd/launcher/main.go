@@ -73,11 +73,12 @@ func main() {
 			r.Set(kiraGit, v, sekaiVersion)
 		case "interx":
 			r.Set(kiraGit, v, interxVersion)
+		default:
+			r.Set(kiraGit, v)
 		}
 
-		fmt.Println(r.Get())
 	}
-
+	fmt.Println(r.Get())
 	fmt.Println(os.LookupEnv("GITHUB_TOKEN"))
 	token := os.Getenv("GITHUB_TOKEN")
 	r = adapters.Fetch(r, token)
@@ -87,24 +88,29 @@ func main() {
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	githubClient := github.NewClient(tc)
+	debFileDestInContainer := "/"
+	sekaiDebFileName := "sekai-linux-amd64.deb"
+	interxDebFileName := "interx-linux-amd64.deb"
+	sekaidContainerName := "sekaiTest"
+	interxContainerName := "interaxTest"
 	// goto FINISH
 	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "sekai", "sekai-linux-amd64.deb", sekaiVersion)
-	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "interx", "interx-linux-amd64.deb", interxVersion)
+	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "interx", interxDebFileName, interxVersion)
 	// FINISH:
 	//sending deb files into containcer
-	err = dockerClient.SendFileToContainer(ctx, "interx-linux-amd64.deb", "/", "interaxTest")
+	err = dockerClient.SendFileToContainer(ctx, sekaiDebFileName, debFileDestInContainer, sekaidContainerName)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = dockerClient.SendFileToContainer(ctx, "sekai-linux-amd64.deb", "/", "sekaiTest")
+	err = dockerClient.SendFileToContainer(ctx, interxDebFileName, debFileDestInContainer, interxContainerName)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = dockerClient.InstallDebPackage("sekaiTest", "/sekai-linux-amd64.deb")
+	err = dockerClient.InstallDebPackage(sekaidContainerName, debFileDestInContainer+sekaiDebFileName)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = dockerClient.InstallDebPackage("interaxTest", "/interx-linux-amd64.deb")
+	err = dockerClient.InstallDebPackage(interxContainerName, debFileDestInContainer+interxDebFileName)
 	if err != nil {
 		fmt.Println(err)
 	}
