@@ -201,7 +201,8 @@ func (DC *DockerClient) InstallDebPackage(containerID, debDestPath string) error
 		return err
 	}
 	if waitResponse.ExitCode != 0 {
-		fmt.Printf("Package installation failed: %s\n", string(output))
+		err = fmt.Errorf("package installation failed: %s", string(output))
+		return err
 	} else {
 		fmt.Println("Package installed successfully")
 	}

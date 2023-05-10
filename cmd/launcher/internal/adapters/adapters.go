@@ -103,10 +103,20 @@ func (gh *GitHubAdapter) GetLatestRelease(owner, repo string) (*github.Repositor
 	return release, nil
 }
 
-func DownloadBinaryFromRepo(ctx context.Context, client *github.Client, owner, repo, binaryName string) {
-	release, _, err := client.Repositories.GetLatestRelease(ctx, owner, repo)
-	if err != nil {
-		log.Fatalf("Error fetching latest release: %v", err)
+func DownloadBinaryFromRepo(ctx context.Context, client *github.Client, owner, repo, binaryName, tag string) {
+	var release *github.RepositoryRelease
+	var err error
+	switch tag {
+	case "latest":
+		release, _, err = client.Repositories.GetLatestRelease(ctx, owner, repo)
+		if err != nil {
+			log.Fatalf("Error fetching latest release: %v", err)
+		}
+	default:
+		release, _, err = client.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
+		if err != nil {
+			log.Fatalf("Error fetching latest release: %v", err)
+		}
 	}
 
 	var asset *github.ReleaseAsset
