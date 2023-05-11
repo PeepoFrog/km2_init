@@ -93,10 +93,20 @@ func main() {
 	interxDebFileName := "interx-linux-amd64.deb"
 	sekaidContainerName := "sekaiTest"
 	interxContainerName := "interaxTest"
-	// goto FINISH
-	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "sekai", "sekai-linux-amd64.deb", sekaiVersion)
+
+	fmt.Println("HERERERERERERER sekai init script ")
+	// time.Sleep(time.Second * 3)
+	dockerClient.InitScript(ctx, dockerBaseImageName, sekaidContainerName, interxContainerName)
+
+	output, err := dockerClient.ExecCommandInContainer(sekaidContainerName, []string{`ls`, `/`})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(output))
+	// goto F
+	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "sekai", sekaiDebFileName, sekaiVersion)
 	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "interx", interxDebFileName, interxVersion)
-	// FINISH:
+	// F:
 	//sending deb files into containcer
 	err = dockerClient.SendFileToContainer(ctx, sekaiDebFileName, debFileDestInContainer, sekaidContainerName)
 	if err != nil {
@@ -114,6 +124,10 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+	fmt.Println("RUN BLOCKCHAIN START")
+	dockerClient.RunBlockChain(ctx, sekaidContainerName, interxContainerName)
+	fmt.Println("RUN BLOCKCHAIN FINISH")
+
 	os.Exit(1)
 
 }

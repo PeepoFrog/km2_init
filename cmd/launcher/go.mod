@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/docker/docker v23.0.1+incompatible
+	github.com/docker/go-connections v0.4.0
 	github.com/google/go-containerregistry v0.14.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/sigstore/cosign v1.13.1
@@ -35,7 +36,6 @@ require (
 	github.com/docker/cli v23.0.1+incompatible // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
-	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1 // indirect
