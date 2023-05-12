@@ -98,6 +98,8 @@ func main() {
 	sekaidContainerName := "sekaiTest"
 	interxContainerName := "interaxTest"
 	fmt.Println("INIT SCRIPT")
+	dockerClient.CheckForContainersName(ctx, sekaidContainerName, interxContainerName)
+
 	dockerClient.InitAndCreateSekaidAndInterxContainers(ctx, dockerBaseImageName, sekaidContainerName, interxContainerName)
 
 	output, err := dockerClient.ExecCommandInContainer(sekaidContainerName, []string{`ls`, `/`})
@@ -127,7 +129,6 @@ func main() {
 		fmt.Println(err)
 	}
 
-	dockerClient.CheckForContainersName(ctx, sekaidContainerName, interxContainerName)
 	dockerClient.RunSekaidBin(ctx, sekaidContainerName)
 	dockerClient.RunInterxBin(ctx, interxContainerName)
 	os.Exit(1)
