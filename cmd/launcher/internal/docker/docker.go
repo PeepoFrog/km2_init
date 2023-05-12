@@ -229,6 +229,7 @@ func (DC *DockerClient) InstallDebPackage(containerID, debDestPath string) error
 	}
 	return nil
 }
+
 func (DC *DockerClient) ExecCommandInContainer(containerID string, command []string) ([]byte, error) {
 	execCreateResponse, err := DC.Cli.ContainerExecCreate(context.Background(), containerID, types.ExecConfig{
 		Cmd:          command,
@@ -238,7 +239,6 @@ func (DC *DockerClient) ExecCommandInContainer(containerID string, command []str
 	if err != nil {
 		return nil, err
 	}
-
 	execAttachConfig := types.ExecStartCheck{}
 	resp, err := DC.Cli.ContainerExecAttach(context.Background(), execCreateResponse.ID, execAttachConfig)
 	if err != nil {
@@ -251,16 +251,15 @@ func (DC *DockerClient) ExecCommandInContainer(containerID string, command []str
 	if err != nil {
 		panic(err)
 	}
-
 	return output, nil
 }
 
-func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Context, imagename, nameForSekaiContainer, nameForInerxContainer string) {
+// check if containers with same names existing, if yes delete
+func (DC *DockerClient) CheckForContainersName(ctx context.Context, nameForSekaiContainer, nameForInerxContainer string) {
 	containers, err := DC.Cli.ContainerList(ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		panic(err)
 	}
-	//check if containers with same name exist before, if yes delete
 	for n, c := range containers {
 		fmt.Println(n)
 		for a, b := range c.Names {
@@ -271,7 +270,7 @@ func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Conte
 				if err != nil {
 					fmt.Println(err)
 				}
-				fmt.Printf("deliting %v container... \n", b)
+				fmt.Printf("deleting %v container... \n", b)
 				err = DC.Cli.ContainerRemove(ctx, c.Names[0], types.ContainerRemoveOptions{})
 				if err != nil {
 					fmt.Println(err)
@@ -281,6 +280,10 @@ func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Conte
 			}
 		}
 	}
+}
+
+// initiating container config, hoost config (ports), network config
+func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Context, imagename, nameForSekaiContainer, nameForInerxContainer string) {
 	config := &container.Config{
 		Image:       imagename,
 		Cmd:         []string{"/bin/bash"},
@@ -352,6 +355,7 @@ func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Conte
 
 }
 
+// Runs sekaid bin in container with all required setting
 func (DC *DockerClient) RunSekaidBin(ctx context.Context, sekaiContainerName string) {
 	NETWORK_NAME := `PEPEGENETWORK-1`
 	SEKAID_HOME := `/root/.sekaid-` + NETWORK_NAME
@@ -393,6 +397,8 @@ func (DC *DockerClient) RunSekaidBin(ctx context.Context, sekaiContainerName str
 	// INTERAX START
 
 }
+
+// Runs interx bin in container with all required setting
 func (DC *DockerClient) RunInterxBin(ctx context.Context, inerxContainerName string) {
 	out, err := DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `DEFAULT_GRPC_PORT=9090 && \
 	DEFAULT_RPC_PORT=26657 && \
@@ -418,6 +424,7 @@ func (DC *DockerClient) RunInterxBin(ctx context.Context, inerxContainerName str
 	fmt.Println("interx started")
 }
 
+// dont need yet
 func replaceConfigFile(filePath string, oldString string, newString string) error {
 	// Read the contents of the file
 	contents, err := ioutil.ReadFile(filePath)
