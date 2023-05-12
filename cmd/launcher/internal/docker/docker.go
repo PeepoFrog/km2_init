@@ -352,11 +352,9 @@ func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Conte
 
 }
 
-func (DC *DockerClient) RunSekaidAndInterxBins(ctx context.Context, sekaiContainerName, inerxContainerName string) {
-
+func (DC *DockerClient) RunSekaidBin(ctx context.Context, sekaiContainerName string) {
 	NETWORK_NAME := `PEPEGENETWORK-1`
 	SEKAID_HOME := `/root/.sekaid-` + NETWORK_NAME
-
 	command := `sekaid init --overwrite --chain-id=` + NETWORK_NAME + ` "PEPEGA NETWORK" --home=` + SEKAID_HOME
 	out, err := DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
 	if err != nil {
@@ -389,11 +387,14 @@ func (DC *DockerClient) RunSekaidAndInterxBins(ctx context.Context, sekaiContain
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println(string(out))
 	}()
 	fmt.Println("sekai started")
 	// INTERAX START
 
-	out, err = DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `DEFAULT_GRPC_PORT=9090 && \
+}
+func (DC *DockerClient) RunInterxBin(ctx context.Context, inerxContainerName string) {
+	out, err := DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `DEFAULT_GRPC_PORT=9090 && \
 	DEFAULT_RPC_PORT=26657 && \
 	PING_TARGET="172.17.0.2"`})
 	if err != nil {
@@ -415,8 +416,8 @@ func (DC *DockerClient) RunSekaidAndInterxBins(ctx context.Context, sekaiContain
 		fmt.Println(string(out))
 	}()
 	fmt.Println("interx started")
-
 }
+
 func replaceConfigFile(filePath string, oldString string, newString string) error {
 	// Read the contents of the file
 	contents, err := ioutil.ReadFile(filePath)

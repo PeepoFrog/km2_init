@@ -127,8 +127,8 @@ func main() {
 		fmt.Println(err)
 	}
 
-	dockerClient.RunSekaidAndInterxBins(ctx, sekaidContainerName, interxContainerName)
-
+	dockerClient.RunSekaidBin(ctx, sekaidContainerName)
+	dockerClient.RunInterxBin(ctx, interxContainerName)
 	os.Exit(1)
 
 }
