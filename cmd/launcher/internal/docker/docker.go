@@ -255,14 +255,32 @@ func (DC *DockerClient) ExecCommandInContainer(containerID string, command []str
 	return output, nil
 }
 
-func (DC *DockerClient) InitScript(ctx context.Context, imagename, nameForSekaiContainer, nameForInerxContainer string) {
-	fmt.Println("stop")
-	DC.Cli.ContainerStop(ctx, nameForSekaiContainer, container.StopOptions{})
-	DC.Cli.ContainerStop(ctx, nameForInerxContainer, container.StopOptions{})
-	DC.Cli.ContainerRemove(ctx, nameForSekaiContainer, types.ContainerRemoveOptions{})
-	DC.Cli.ContainerRemove(ctx, nameForInerxContainer, types.ContainerRemoveOptions{})
-	fmt.Println("END STOP")
-
+func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Context, imagename, nameForSekaiContainer, nameForInerxContainer string) {
+	containers, err := DC.Cli.ContainerList(ctx, types.ContainerListOptions{All: true})
+	if err != nil {
+		panic(err)
+	}
+	//check if containers with same name exist before, if yes delete
+	for n, c := range containers {
+		fmt.Println(n)
+		for a, b := range c.Names {
+			fmt.Println(a)
+			if b == `/`+nameForInerxContainer || b == `/`+nameForSekaiContainer {
+				fmt.Printf("container %v detected \n stoping... \n", b)
+				err = DC.Cli.ContainerStop(ctx, c.Names[0], container.StopOptions{})
+				if err != nil {
+					fmt.Println(err)
+				}
+				fmt.Printf("deliting %v container... \n", b)
+				err = DC.Cli.ContainerRemove(ctx, c.Names[0], types.ContainerRemoveOptions{})
+				if err != nil {
+					fmt.Println(err)
+				}
+				fmt.Printf("container %v deleted \n", b)
+				println()
+			}
+		}
+	}
 	config := &container.Config{
 		Image:       imagename,
 		Cmd:         []string{"/bin/bash"},
@@ -326,142 +344,54 @@ func (DC *DockerClient) InitScript(ctx context.Context, imagename, nameForSekaiC
 	if err != nil {
 		panic(err)
 	}
-
 	// Start the container
 	if err := DC.Cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		panic(err)
 	}
+	fmt.Printf("Interx Container started successfully! ID: %s\n", resp.ID)
 
 }
 
-func (DC *DockerClient) RunBlockChain(ctx context.Context, sekaiContainerName, inerxContainerName string) {
+func (DC *DockerClient) RunSekaidAndInterxBins(ctx context.Context, sekaiContainerName, inerxContainerName string) {
 
-	// out, err := DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `NETWORK_NAME="PEPEGENETWORK-1" && \
-	// SEKAID_HOME=~/.sekaid-$NETWORK_NAME`})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(string(out))
 	NETWORK_NAME := `PEPEGENETWORK-1`
 	SEKAID_HOME := `/root/.sekaid-` + NETWORK_NAME
 
-	// `sekaid init --overwrite --chain-id=$NETWORK_NAME "PEPEGA NETWORK" --home=$SEKAID_HOME`
 	command := `sekaid init --overwrite --chain-id=` + NETWORK_NAME + ` "PEPEGA NETWORK" --home=` + SEKAID_HOME
-	fmt.Println("1", command)
 	out, err := DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(string(out))
-	fmt.Println("2")
 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `mkdir ~/mnemonics`})
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(string(out))
-	fmt.Println("3")
 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `sekaid keys add "validator" --keyring-backend=test --home=` + SEKAID_HOME + ` --output=json | jq .mnemonic > ~/mnemonics/sekai.mnemonic
 	`})
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(string(out))
-	fmt.Println("4")
 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `sekaid keys add "faucet" --keyring-backend=test --home=` + SEKAID_HOME + ` --output=json | jq .mnemonic > ~/mnemonics/faucet.mnemonic
 	`})
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(string(out))
-	fmt.Println("5")
 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test  --home=` + SEKAID_HOME})
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(string(out))
-	fmt.Println("6")
 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" --home=` + SEKAID_HOME})
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(string(out))
-
-	// err = DC.GetFileFromContainer(ctx, `./config.toml`, `root/.sekaid-PEPEGENETWORK-1/config/config.toml`, sekaiContainerName)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// err = replaceConfigFile(`./config.toml`, `laddr = "tcp://127.0.0.1:26657"`, `laddr = "tcp://0.0.0.0:26657"`)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// err = DC.SendFileToContainer(ctx, `./config.toml`, `root/.sekaid-PEPEGENETWORK-1/config/`, sekaiContainerName)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// command = `sed -i 's/laddr = "tcp:\/\/127.0.0.1:26657"/laddr = "tcp:\/\/0.0.0.0:26657" ~/.sekaid-PEPEGENETWORK-1/config/config.toml`
-	// fmt.Println("8", command)
-	// out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(string(out))
-
-	// command = `sed -i 's/laddr = "tcp:\/\/127.0.0.1:26657"/laddr = "tcp:\/\/0.0.0.0:26657"/' ~/.sekaid/config/config.toml`
-	// fmt.Println("8", command)
-	// out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(string(out))
-
-	// command = `cat > /etc/systemd/system/sekai.service << EOL
-	// [Unit]
-	// Description=Local KIRA Test Network
-	// After=network.target
-	// [Service]
-	// MemorySwapMax=0
-	// Type=simple
-	// User=root
-	// WorkingDirectory=/root
-	// ExecStart=/bin/sekaid start --trace --home=` + SEKAID_HOME + `
-	// Restart=always
-	// RestartSec=5
-	// LimitNOFILE=4096
-	// [Install]
-	// WantedBy=default.target
-	// EOL`
-	// fmt.Println("9", command)
-	// out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(string(out))
-	// DC.SendFileToContainer(ctx, `./sekai.service`, `/etc/systemd/system/sekai.service`, sekaiContainerName)
-	// fmt.Println("10")
-	// out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `systemctl enable sekai
-	// `})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(string(out))
-	// fmt.Println("11")
-	// out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `systemctl start sekai
-	// `})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(string(out))
-	fmt.Println("12")
 	go func() {
 		out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `sekaid start --rpc.laddr "tcp://0.0.0.0:26657" --home=root/.sekaid-PEPEGENETWORK-1`})
 		if err != nil {
 			panic(err)
 		}
-		// fmt.Println(string(out))
 	}()
-
+	fmt.Println("sekai started")
 	// INTERAX START
-	fmt.Println("13")
 
 	out, err = DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `DEFAULT_GRPC_PORT=9090 && \
 	DEFAULT_RPC_PORT=26657 && \
@@ -469,28 +399,22 @@ func (DC *DockerClient) RunBlockChain(ctx context.Context, sekaiContainerName, i
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(out))
 	DEFAULT_GRPC_PORT := `9090`
 	DEFAULT_RPC_PORT := `26657`
 	PING_TARGET := `172.17.0.2`
-	fmt.Println("14")
-
 	out, err = DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `interx init --rpc="http://` + PING_TARGET + `:` + DEFAULT_RPC_PORT + `" --grpc="dns:///` + PING_TARGET + `:` + DEFAULT_GRPC_PORT + `" 
 	`})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(out))
-	fmt.Println("15")
-
-	out, err = DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `interx start 
-	`})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(out))
-
-	fmt.Println("DOOOOOOOOOONEEEEEEEEEEEEEEEEEE")
+	go func() {
+		out, err = DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `interx start`})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(out))
+	}()
+	fmt.Println("interx started")
 
 }
 func replaceConfigFile(filePath string, oldString string, newString string) error {

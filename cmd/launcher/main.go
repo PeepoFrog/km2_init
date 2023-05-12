@@ -28,7 +28,8 @@ func main() {
 	}
 	defer dockerClient.Cli.Close()
 	launcherInterface := helpers.LauncherInterface(&helpers.Linux{})
-	dockerBaseImageName := "ghcr.io/kiracore/docker/base-image:" + KIRA_BASE_VERSION
+	// dockerBaseImageName := "ghcr.io/kiracore/docker/base-image:" + KIRA_BASE_VERSION
+	dockerBaseImageName := "ubuntu"
 	err = launcherInterface.PrivilageCheck()
 	if err != nil {
 		panic(err)
@@ -52,6 +53,9 @@ func main() {
 	}
 
 	fmt.Println("docker installed")
+	//
+	//
+	// UBUNTU TESTING
 	err = dockerClient.PullImage(ctx, dockerBaseImageName)
 	if err != nil {
 		panic(err)
@@ -93,10 +97,8 @@ func main() {
 	interxDebFileName := "interx-linux-amd64.deb"
 	sekaidContainerName := "sekaiTest"
 	interxContainerName := "interaxTest"
-
-	fmt.Println("HERERERERERERER sekai init script ")
-	// time.Sleep(time.Second * 3)
-	dockerClient.InitScript(ctx, dockerBaseImageName, sekaidContainerName, interxContainerName)
+	fmt.Println("INIT SCRIPT")
+	dockerClient.InitAndCreateSekaidAndInterxContainers(ctx, dockerBaseImageName, sekaidContainerName, interxContainerName)
 
 	output, err := dockerClient.ExecCommandInContainer(sekaidContainerName, []string{`ls`, `/`})
 	if err != nil {
@@ -124,9 +126,8 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("RUN BLOCKCHAIN START")
-	dockerClient.RunBlockChain(ctx, sekaidContainerName, interxContainerName)
-	fmt.Println("RUN BLOCKCHAIN FINISH")
+
+	dockerClient.RunSekaidAndInterxBins(ctx, sekaidContainerName, interxContainerName)
 
 	os.Exit(1)
 
