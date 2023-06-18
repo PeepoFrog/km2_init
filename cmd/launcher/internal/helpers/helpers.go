@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/user"
@@ -65,7 +66,7 @@ func (l *Linux) InstallDocker() error {
 	var output []byte
 	var err error
 	if output, err = l.RunBashCommandWithSudo(`apt-get update`); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 
 		return err
 	}
@@ -75,11 +76,9 @@ func (l *Linux) InstallDocker() error {
 	// ca-certificates \
 	// curl \
 	// gnupg
-	if output, err = l.RunBashCommandWithSudo(`apt-get install \
-    ca-certificates \
-    curl \
-    gnupg`); err != nil {
-		fmt.Println(err, 1)
+	log.Println(err, 1)
+
+	if output, err = l.RunBashCommandWithSudo(`apt-get install ca-certificates  curl  gnupg -y`); err != nil {
 
 		return err
 	}
@@ -87,26 +86,27 @@ func (l *Linux) InstallDocker() error {
 
 	//Add Docker’s official GPG key:
 	//sudo install -m 0755 -d /etc/apt/keyrings
+	log.Println(err, 2)
 
 	if output, err = l.RunBashCommandWithSudo(`install -m 0755 -d /etc/apt/keyrings`); err != nil {
-		fmt.Println(err, 2)
 
 		return err
 	}
 	fmt.Println(string(output))
 
 	// curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+	log.Println(err, 3)
 
 	if output, err = l.RunBashCommand(`curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor --batch --yes -o /etc/apt/keyrings/docker.gpg`); err != nil {
-		fmt.Println(err, 3)
 
 		return err
 	}
 	fmt.Println(string(output))
 
 	// sudo chmod a+r /etc/apt/keyrings/docker.gpg
+	log.Println(err, 4)
+
 	if output, err = l.RunBashCommandWithSudo(`chmod a+r /etc/apt/keyrings/docker.gpg`); err != nil {
-		fmt.Println(err, 4)
 		return err
 	}
 	fmt.Println(string(output))
@@ -114,36 +114,37 @@ func (l *Linux) InstallDocker() error {
 	// "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
 	// "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
 	// sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+	log.Println(err, 5)
 
 	if output, err = l.RunBashCommand(`echo \
 	"deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
 	"$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
 	sudo tee /etc/apt/sources.list.d/docker.list > /dev/null`); err != nil {
-		fmt.Println(err, 5)
 
 		return err
 	}
 	fmt.Println(string(output))
+	log.Println(err, 6)
+
 	if output, err = l.RunBashCommandWithSudo(`apt-get update`); err != nil {
-		fmt.Println(err, 6)
 
 		return err
 	}
-	fmt.Println(string(output))
+	log.Println(string(output))
 	//sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+	log.Println(err, 7)
 
 	if output, err = l.RunBashCommandWithSudo(`apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y`); err != nil {
-		fmt.Println(err, 7)
 
 		return err
 	}
-	fmt.Println(string(output))
+	log.Println(string(output))
 	return nil
 }
 func (l *Linux) RunBashCommandWithSudo(command string) (output []byte, err error) {
 	cmd := exec.Command("sudo", "bash", "-c", command)
 	if output, err = cmd.Output(); err != nil {
-		fmt.Println(err, 8)
+		fmt.Println(err, 8, "runbashwithsudo")
 
 		return output, err
 	}

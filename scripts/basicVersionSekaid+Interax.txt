@@ -2,9 +2,6 @@ IMG_VERSION="v0.13.7" && \
 BASE_NAME="sekaiTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:$IMG_VERSION" && \
 sudo docker run -i -t -v testVolume:/data -d -p 9090:9090 -p 26657:26657 --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash 
 
-
-export GITHUB_TOKEN=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
-
 #запуск в інтерактивному моді base-image
 sudo docker start -i sekaiTest
 # жмем ентр після 
