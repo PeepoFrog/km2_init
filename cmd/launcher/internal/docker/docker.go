@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
@@ -174,6 +175,7 @@ func (DC *DockerClient) SendFileToContainer(ctx context.Context, filePathOnHostM
 	return nil
 }
 
+// required to send file into container
 func addFileToTar(fileInfo os.FileInfo, file io.Reader, tarWriter *tar.Writer) error {
 	// Create a new tar header
 	header := &tar.Header{
@@ -260,10 +262,8 @@ func (DC *DockerClient) CheckForContainersName(ctx context.Context, nameForSekai
 	if err != nil {
 		panic(err)
 	}
-	for n, c := range containers {
-		fmt.Println(n)
-		for a, b := range c.Names {
-			fmt.Println(a)
+	for _, c := range containers {
+		for _, b := range c.Names {
 			if b == `/`+nameForInerxContainer || b == `/`+nameForSekaiContainer {
 				fmt.Printf("container %v detected \n stoping... \n", b)
 				err = DC.Cli.ContainerStop(ctx, c.Names[0], container.StopOptions{})
@@ -283,14 +283,17 @@ func (DC *DockerClient) CheckForContainersName(ctx context.Context, nameForSekai
 }
 
 // initiating container config, hoost config (ports), network config
-func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Context, imagename, nameForSekaiContainer, nameForInerxContainer string) {
-	config := &container.Config{
-		Image:       imagename,
+func (DC *DockerClient) InitAndCreateSekaidContainer(ctx context.Context, imageName, nameForSekaiContainer, networkName string) {
+	sekaiConfig := &container.Config{
+		Image:       imageName,
 		Cmd:         []string{"/bin/bash"},
 		Tty:         true,
 		AttachStdin: true,
 		OpenStdin:   true,
 		StdinOnce:   true,
+		ExposedPorts: nat.PortSet{
+			"9090/tcp":  struct{}{},
+			"26657/tcp": struct{}{}},
 	}
 
 	hostConfig := &container.HostConfig{
@@ -306,33 +309,41 @@ func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Conte
 
 	networkingConfig := &network.NetworkingConfig{
 		EndpointsConfig: map[string]*network.EndpointSettings{
-			"bridge": {},
+			networkName: {},
 		},
 	}
 
-	// Create the container for sekaid
-	resp, err := DC.Cli.ContainerCreate(ctx, config, hostConfig, networkingConfig, nil, nameForSekaiContainer)
+	// Create container for sekaid
+	resp, err := DC.Cli.ContainerCreate(ctx, sekaiConfig, hostConfig, networkingConfig, nil, nameForSekaiContainer)
 	if err != nil {
 		panic(err)
 	}
 
-	// Start the container
+	// Start  container
 	if err := DC.Cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		panic(err)
 	}
 
 	fmt.Printf("Sekai Container started successfully! ID: %s\n", resp.ID)
 
-	config = &container.Config{
-		Image:       imagename,
-		Cmd:         []string{"/bin/bash"},
-		Tty:         true,
-		AttachStdin: true,
-		OpenStdin:   true,
-		StdinOnce:   true,
+}
+func (DC *DockerClient) InitAndCreateInterxContainer(ctx context.Context, imageName, nameForInerxContainer, networkName string) {
+	// Create the container for interx
+	interxConfig := &container.Config{
+		Image:        imageName,
+		Cmd:          []string{"/bin/bash"},
+		Tty:          true,
+		AttachStdin:  true,
+		OpenStdin:    true,
+		StdinOnce:    true,
+		ExposedPorts: nat.PortSet{"11000/tcp": struct{}{}},
 	}
-
-	hostConfig = &container.HostConfig{
+	networkingConfig := &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			networkName: {},
+		},
+	}
+	interxHostConfig := &container.HostConfig{
 		Binds: []string{
 			"testVolume:/data",
 		},
@@ -342,8 +353,7 @@ func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Conte
 		Privileged: true,
 	}
 
-	// Create the container for interx
-	resp, err = DC.Cli.ContainerCreate(ctx, config, hostConfig, networkingConfig, nil, nameForInerxContainer)
+	resp, err := DC.Cli.ContainerCreate(ctx, interxConfig, interxHostConfig, networkingConfig, nil, nameForInerxContainer)
 	if err != nil {
 		panic(err)
 	}
@@ -352,7 +362,6 @@ func (DC *DockerClient) InitAndCreateSekaidAndInterxContainers(ctx context.Conte
 		panic(err)
 	}
 	fmt.Printf("Interx Container started successfully! ID: %s\n", resp.ID)
-
 }
 
 // Runs sekaid bin in container with all required setting
@@ -386,12 +395,13 @@ func (DC *DockerClient) RunSekaidBin(ctx context.Context, sekaiContainerName str
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(string(out))
 	go func() {
-		out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `sekaid start --rpc.laddr "tcp://0.0.0.0:26657" --home=root/.sekaid-PEPEGENETWORK-1`})
+		out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, `sekaid start --rpc.laddr "tcp://0.0.0.0:26657" --home=` + SEKAID_HOME})
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(string(out))
+		// fmt.Println(string(out))
 	}()
 	fmt.Println("sekai started")
 	// INTERAX START
@@ -399,18 +409,17 @@ func (DC *DockerClient) RunSekaidBin(ctx context.Context, sekaiContainerName str
 }
 
 // Runs interx bin in container with all required setting
-func (DC *DockerClient) RunInterxBin(ctx context.Context, inerxContainerName string) {
-	out, err := DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `DEFAULT_GRPC_PORT=9090 && \
-	DEFAULT_RPC_PORT=26657 && \
-	PING_TARGET="172.17.0.2"`})
-	if err != nil {
-		panic(err)
-	}
-	DEFAULT_GRPC_PORT := `9090`
-	DEFAULT_RPC_PORT := `26657`
-	PING_TARGET := `172.17.0.2`
-	out, err = DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `interx init --rpc="http://` + PING_TARGET + `:` + DEFAULT_RPC_PORT + `" --grpc="dns:///` + PING_TARGET + `:` + DEFAULT_GRPC_PORT + `" 
-	`})
+func (DC *DockerClient) RunInterxBin(ctx context.Context, inerxContainerName, sekaidContainerName, rpc_port, grpc_port string) {
+	// out, err := DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `DEFAULT_GRPC_PORT=9090 && \
+	// DEFAULT_RPC_PORT=26657 && \
+	// PING_TARGET="sekaid"`})
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	PING_TARGET := sekaidContainerName
+	log.Println(`interx init --rpc="http://` + PING_TARGET + `:` + rpc_port + `" --grpc="dns:///` + PING_TARGET + `:` + grpc_port + `" `)
+	out, err := DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `interx init --rpc="http://` + PING_TARGET + `:` + rpc_port + `" --grpc="dns:///` + PING_TARGET + `:` + grpc_port + `" `})
 	if err != nil {
 		panic(err)
 	}
@@ -422,6 +431,31 @@ func (DC *DockerClient) RunInterxBin(ctx context.Context, inerxContainerName str
 		fmt.Println(string(out))
 	}()
 	fmt.Println("interx started")
+}
+
+func (DC *DockerClient) CreateNetwork(ctx context.Context, networkName string) error {
+	networklist, err := DC.Cli.NetworkList(ctx, types.NetworkListOptions{})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	check := false
+	for _, network := range networklist {
+		if network.Name == networkName {
+			check = true
+			log.Println("network already exist")
+		}
+	}
+	if check == false {
+		log.Println("creating network")
+		networkName := "kira_network"
+		_, err := DC.Cli.NetworkCreate(ctx, networkName, types.NetworkCreate{})
+		if err != nil {
+			log.Fatalf("Unable to create Docker network: %v", err)
+			return (err)
+		}
+	}
+	return err
 }
 
 // dont need yet

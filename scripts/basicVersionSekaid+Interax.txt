@@ -2,44 +2,40 @@ IMG_VERSION="v0.13.7" && \
 BASE_NAME="sekaiTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:$IMG_VERSION" && \
 sudo docker run -i -t -v testVolume:/data -d -p 9090:9090 -p 26657:26657 --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash 
 
+
+export GITHUB_TOKEN=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
+
 #запуск в інтерактивному моді base-image
 sudo docker start -i sekaiTest
 # жмем ентр після 
 
-
-
-wget https://github.com/KiraCore/sekai/releases/download/v0.3.14/sekai-linux-amd64.deb
-apt install ./sekai-linux-amd64.deb
-#apt  install jq
-
+#apt update && apt install wget -y && apt install jq -y && apt install systemctl -y && apt  install jq -y && \
+wget https://github.com/KiraCore/sekai/releases/download/v0.3.14/sekai-linux-amd64.deb && apt install ./sekai-linux-amd64.deb && \
 NETWORK_NAME="PEPEGENETWORK-1" && \
-SEKAID_HOME=~/.sekaid-$NETWORK_NAME 
-
+SEKAID_HOME=~/.sekaid-$NETWORK_NAME && \
 sekaid init --overwrite --chain-id=$NETWORK_NAME "PEPEGA NETWORK" --home=$SEKAID_HOME
 
-sekaid keys add validator --keyring-backend=test --home=$SEKAID_HOME --output=json | jq 
 
-mkdir $HOME/mnemonics
+#sekaid keys add validator --keyring-backend=test --home=$SEKAID_HOME --output=json | jq 
 
-sekaid keys add "validator" --keyring-backend=test --home=$SEKAID_HOME --output=json | jq .mnemonic > $HOME/mnemonics/sekai.mnemonic
+mkdir $HOME/mnemonics &&\
+\
+sekaid keys add "validator" --keyring-backend=test --home=$SEKAID_HOME --output=json | jq  > $HOME/mnemonics/sekai.mnemonic && \
 sekaid keys add "faucet" --keyring-backend=test --home=$SEKAID_HOME --output=json | jq .mnemonic > $HOME/mnemonics/faucet.mnemonic
 
-#echo $(sekaid keys show "validator" --keyring-backend=test --output=json | jq .address)
-#проблема з лампаки потрібно копіювати і вставляти в код нижче без лапок 
-#valAddress=$(sekaid keys show "validator" --keyring-backend=test --output=json | jq .address) 
-sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test  --home=$SEKAID_HOME
 
 
 
-#echo $(sekaid keys show "faucet" --keyring-backend=test --output=json | jq .address)
-#проблема з змінною facAddress а саме лампаки потрібно копіювати і вставляти в код нижче без лапок 
-#facAddress=$(sekaid keys show "faucet" --keyring-backend=test --output=json | jq .address) 
-sekaid add-genesis-account faucet 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME
 
-sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" --home=$SEKAID_HOME
+sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test  --home=$SEKAID_HOME && \
+\
+sekaid add-genesis-account faucet 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME && \
+\
+sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" --home=$SEKAID_HOME && \
+\
 sed -i 's/laddr = "tcp:\/\/127.0.0.1:26657"/laddr = "tcp:\/\/0.0.0.0:26657"/' $SEKAID_HOME/config/config.toml
-sed -i 's/laddr = "tcp:\/\/127.0.0.1:26657"/laddr = "tcp:\/\/0.0.0.0:26657"/' $HOME/.sekaid/config/config.toml
-#sekaid start --home=$SEKAID_HOME
+
+# sekaid start --home=$SEKAID_HOME
 
 cat > /etc/systemd/system/sekai.service << EOL
 [Unit]
@@ -50,7 +46,7 @@ MemorySwapMax=0
 Type=simple
 User=root
 WorkingDirectory=/root
-ExecStart=/bin/sekaid start --trace --home=$SEKAID_HOME
+ExecStart=/bin/sekaid start --trace --home=$SEKAID_HOME 
 Restart=always
 RestartSec=5
 LimitNOFILE=4096
@@ -59,11 +55,14 @@ WantedBy=default.target
 EOL
 
 # активуєм сервіс секайду   
-systemctl enable sekai 
 # запускаєм його
-systemctl start sekai
+systemctl enable sekai && \
+systemctl start sekai 
 
 
+
+sekaid keys list --keyring-backend=test
+sekaid query bank balances kira1caq4xvzlyttv6570wezu9vp6mdjvavwu4pmwsr --output=json --home=$SEKAID_HOME
 
 ######### INTERAX ruinning
 
@@ -73,7 +72,7 @@ BASE_NAME_INTERAX="interaxTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:
 sudo docker run -i -t -v testVolume:/data -p 11000:11000 -d --privileged --net bridge --name $BASE_NAME_INTERAX --hostname test.local $BASE_IMG /bin/bash
 
 #запуск в інтерактивному моді base-image
-sudo docker start -i $BASE_NAME_INTERAX
+sudo docker start -i interaxTest
 
 wget https://github.com/KiraCore/interx/releases/download/v0.4.32/interx-linux-amd64.deb
 apt install ./interx-linux-amd64.deb
@@ -86,4 +85,18 @@ interx init --rpc="http://$PING_TARGET:$DEFAULT_RPC_PORT" --grpc="dns:///$PING_T
 interx start 
 
 
+
+
+
+curl 172.17.0.3:11000/api/status
+
+
+###apline linux testing
+
+BASE_NAME="sekaiAplineTest" 
+sudo docker run -i -t -d -p 9090:9090 -p 26657:26657 --privileged --net bridge --name $BASE_NAME --hostname test.local alpine /bin/sh
+
+#запуск в інтерактивному моді base-image
+sudo docker start -i sekaiAplineTest
+# жмем ентр після 
 

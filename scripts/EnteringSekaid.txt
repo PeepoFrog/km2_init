@@ -1,13 +1,18 @@
 #how to start kira base  
-#IMG_VERSION="v0.13.7" && \
+#IMG_VERSION="v0.13.11" && \
 BASE_NAME="kiraBaseImageSekaid" && BASE_IMG="ghcr.io/kiracore/docker/kira-base:$IMG_VERSION" && \
-sudo docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
 
 sudo docker start -i kiraBaseImageSekaid
 ###
 
+BASE_NAME="kiraBaseImageSekaid" && BASE_IMG="ghcr.io/kiracore/docker/kira-base:$IMG_VERSION" && \
+docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+##
 
-
+IMG_VERSION="sha-9273e576d2db8e820f226f021185b8b5df531bcc" && \
+BASE_NAME="kiraBaseImageSekaid" && BASE_IMG="ghcr.io/kiracore/docker/base-image" && \
+docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
 
 
 

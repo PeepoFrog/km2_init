@@ -65,6 +65,8 @@ func (l *Linux) InstallDocker() error {
 	var output []byte
 	var err error
 	if output, err = l.RunBashCommandWithSudo(`apt-get update`); err != nil {
+		fmt.Println(err)
+
 		return err
 	}
 	fmt.Println(string(output))
@@ -77,6 +79,8 @@ func (l *Linux) InstallDocker() error {
     ca-certificates \
     curl \
     gnupg`); err != nil {
+		fmt.Println(err, 1)
+
 		return err
 	}
 	fmt.Println(string(output))
@@ -85,6 +89,8 @@ func (l *Linux) InstallDocker() error {
 	//sudo install -m 0755 -d /etc/apt/keyrings
 
 	if output, err = l.RunBashCommandWithSudo(`install -m 0755 -d /etc/apt/keyrings`); err != nil {
+		fmt.Println(err, 2)
+
 		return err
 	}
 	fmt.Println(string(output))
@@ -92,12 +98,15 @@ func (l *Linux) InstallDocker() error {
 	// curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
 	if output, err = l.RunBashCommand(`curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor --batch --yes -o /etc/apt/keyrings/docker.gpg`); err != nil {
+		fmt.Println(err, 3)
+
 		return err
 	}
 	fmt.Println(string(output))
 
 	// sudo chmod a+r /etc/apt/keyrings/docker.gpg
 	if output, err = l.RunBashCommandWithSudo(`chmod a+r /etc/apt/keyrings/docker.gpg`); err != nil {
+		fmt.Println(err, 4)
 		return err
 	}
 	fmt.Println(string(output))
@@ -110,16 +119,22 @@ func (l *Linux) InstallDocker() error {
 	"deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
 	"$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
 	sudo tee /etc/apt/sources.list.d/docker.list > /dev/null`); err != nil {
+		fmt.Println(err, 5)
+
 		return err
 	}
 	fmt.Println(string(output))
 	if output, err = l.RunBashCommandWithSudo(`apt-get update`); err != nil {
+		fmt.Println(err, 6)
+
 		return err
 	}
 	fmt.Println(string(output))
 	//sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 	if output, err = l.RunBashCommandWithSudo(`apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y`); err != nil {
+		fmt.Println(err, 7)
+
 		return err
 	}
 	fmt.Println(string(output))
@@ -128,6 +143,8 @@ func (l *Linux) InstallDocker() error {
 func (l *Linux) RunBashCommandWithSudo(command string) (output []byte, err error) {
 	cmd := exec.Command("sudo", "bash", "-c", command)
 	if output, err = cmd.Output(); err != nil {
+		fmt.Println(err, 8)
+
 		return output, err
 	}
 	return output, nil
