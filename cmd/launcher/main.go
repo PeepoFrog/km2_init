@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -18,7 +17,7 @@ import (
 
 const (
 	NETWORK_NAME          = "testnet-1"
-	SEKAID_HOME           = "~/sekaid"
+	SEKAID_HOME           = `/root/.sekaid-` + NETWORK_NAME
 	KEYRING_BACKEND       = "test"
 	DOCKER_IMAGE_NAME     = "ghcr.io/kiracore/docker/kira-base"
 	DOCKER_IMAGE_VERSION  = "v0.13.11"
@@ -27,7 +26,7 @@ const (
 	INTERX_VERSION        = "latest" //or v0.4.33
 	SEKAID_CONTAINER_NAME = "sekaid"
 	INTERX_CONTAINER_NAME = "interx"
-	VOLUME_NAME           = "kira_volume"
+	VOLUME_NAME           = "kira_volume:/data"
 	MNEMONIC_FOLDER       = "~/mnemonics"
 	RPC_PORT              = 26657
 	GRPC_PORT             = 9090
@@ -39,47 +38,47 @@ f+mU9F/Qbfq25bBWV2+NlYMJv3KvKHNtu3Jknt6yizZjUV4b8WGfKBzFYw==
 -----END PUBLIC KEY-----`
 
 func main() {
-	dockerClient, err := docker.GetDockerClient()
-	if err != nil {
-		panic(err)
-	}
-	defer dockerClient.Cli.Close()
+
 	launcherInterface := helpers.LauncherInterface(&helpers.Linux{})
 	dockerBaseImageName := DOCKER_IMAGE_NAME + ":" + DOCKER_IMAGE_VERSION
 	// dockerBaseImageName := "ubuntu"
-	err = launcherInterface.PrivilageCheck()
+	err := launcherInterface.PrivilageCheck()
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	arch, platform := launcherInterface.CheckPlaform()
-	fmt.Println(arch, platform)
+	log.Println(arch, platform)
 	ctx := context.Background()
-	err = dockerClient.VerifyDockerInstallation(ctx)
-	defer dockerClient.Cli.Close()
+
+	dockerClient, err := docker.NewDockerClient()
 	if err != nil {
-		fmt.Println(err)
-		fmt.Println("INSTALING DOCKER")
+		log.Fatalln(err)
+	}
+	defer dockerClient.Cli.Close()
+	err = dockerClient.VerifyDockerInstallation(ctx)
+	if err != nil {
+		log.Fatalln(err)
 		if err = launcherInterface.InstallDocker(); err != nil {
-			panic(err)
+			log.Fatalln(err)
 		}
 		err = dockerClient.VerifyDockerInstallation(ctx)
 		if err != nil {
-			panic(err)
+			log.Fatalln(err)
 		}
 	}
 
-	fmt.Println("docker installed")
+	log.Println("docker installed")
 	err = dockerClient.PullImage(ctx, dockerBaseImageName)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
-	b, err := cosign.VerifyImageSignature(ctx, dockerBaseImageName, DockerImagePubKey)
+	checkBool, err := cosign.VerifyImageSignature(ctx, dockerBaseImageName, DockerImagePubKey)
 	if err != nil {
-		fmt.Println(b)
-		panic(err)
+		log.Println(checkBool)
+		log.Fatalln(err)
 	}
-	fmt.Println(b)
+	log.Println(checkBool)
 	r := adapters.Repositories{}
 	kiraRepos := []string{"sekai", "interx"}
 	kiraGit := "KiraCore"
@@ -94,11 +93,11 @@ func main() {
 		}
 
 	}
-	fmt.Println(r.Get())
-	fmt.Println(os.LookupEnv("GITHUB_TOKEN"))
+	log.Println(r.Get())
+	log.Println(os.LookupEnv("GITHUB_TOKEN"))
 	token := os.Getenv("GITHUB_TOKEN")
 	r = adapters.Fetch(r, token)
-	fmt.Println(r)
+	log.Println(r)
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
@@ -108,15 +107,40 @@ func main() {
 	sekaiDebFileName := "sekai-linux-amd64.deb"
 	interxDebFileName := "interx-linux-amd64.deb"
 
-	fmt.Println("INIT SCRIPT")
-	dockerClient.CheckForContainersName(ctx, SEKAID_CONTAINER_NAME, INTERX_CONTAINER_NAME)
-	dockerClient.CreateNetwork(ctx, "kira_network")
-	//creating sekaid container
-	log.Println("Creating containers")
-	log.Println("Creating sekaid container")
-	dockerClient.InitAndCreateSekaidContainer(ctx, dockerBaseImageName, SEKAID_CONTAINER_NAME, DOCKER_NETWORK_NAME)
-	log.Println("Creating interx container")
-	dockerClient.InitAndCreateInterxContainer(ctx, dockerBaseImageName, INTERX_CONTAINER_NAME, DOCKER_NETWORK_NAME)
+	check, err := dockerClient.CheckForContainersName(ctx, SEKAID_CONTAINER_NAME)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if check != "" {
+		dockerClient.StopAndDeleteContainer(ctx, SEKAID_CONTAINER_NAME)
+	}
+	check, err = dockerClient.CheckForContainersName(ctx, INTERX_CONTAINER_NAME)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if check != "" {
+		dockerClient.StopAndDeleteContainer(ctx, INTERX_CONTAINER_NAME)
+	}
+	dockerClient.CheckAndCreateNetwork(ctx, DOCKER_NETWORK_NAME)
+
+	sekaidManager, err := docker.NewSekaidManager(strconv.Itoa(GRPC_PORT), strconv.Itoa(RPC_PORT), dockerBaseImageName, VOLUME_NAME, DOCKER_NETWORK_NAME, dockerClient)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	err = dockerClient.InitAndCreateContainer(ctx, sekaidManager.ContainerConfig, sekaidManager.SekaidNetworkingConfig, sekaidManager.SekaiHostConfig, SEKAID_CONTAINER_NAME)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	interxManager, err := docker.NewInterxManager(strconv.Itoa(INTERX_PORT), dockerBaseImageName, VOLUME_NAME, DOCKER_NETWORK_NAME, dockerClient)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	err = dockerClient.InitAndCreateContainer(ctx, interxManager.ContainerConfig, interxManager.SekaidNetworkingConfig, interxManager.SekaiHostConfig, INTERX_CONTAINER_NAME)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	// goto F
 	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "sekai", sekaiDebFileName, SEKAI_VERSION)
 	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "interx", interxDebFileName, INTERX_VERSION)
@@ -125,23 +149,31 @@ func main() {
 	//sending deb files into containcer
 	err = dockerClient.SendFileToContainer(ctx, sekaiDebFileName, debFileDestInContainer, SEKAID_CONTAINER_NAME)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln("error while sending file to container", err)
 	}
 	err = dockerClient.SendFileToContainer(ctx, interxDebFileName, debFileDestInContainer, INTERX_CONTAINER_NAME)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 	err = dockerClient.InstallDebPackage(SEKAID_CONTAINER_NAME, debFileDestInContainer+sekaiDebFileName)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 	err = dockerClient.InstallDebPackage(INTERX_CONTAINER_NAME, debFileDestInContainer+interxDebFileName)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(err)
 	}
 
-	dockerClient.RunSekaidBin(ctx, SEKAID_CONTAINER_NAME)
-	dockerClient.RunInterxBin(ctx, INTERX_CONTAINER_NAME, SEKAID_CONTAINER_NAME, strconv.Itoa(RPC_PORT), strconv.Itoa(GRPC_PORT))
+	// err = dockerClient.RunSekaidBin(ctx, SEKAID_CONTAINER_NAME, NETWORK_NAME, SEKAID_HOME, KEYRING_BACKEND, strconv.Itoa(RPC_PORT))
+	err = sekaidManager.RunSekaidContainer(SEKAID_CONTAINER_NAME, DOCKER_NETWORK_NAME, SEKAID_HOME, KEYRING_BACKEND, strconv.Itoa(RPC_PORT))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	// err = dockerClient.RunInterxBin(ctx, INTERX_CONTAINER_NAME, SEKAID_CONTAINER_NAME, strconv.Itoa(RPC_PORT), strconv.Itoa(GRPC_PORT))
+	err = interxManager.RunInterxContainer(SEKAID_CONTAINER_NAME, INTERX_CONTAINER_NAME, strconv.Itoa(RPC_PORT), strconv.Itoa(GRPC_PORT))
+	if err != nil {
+		log.Fatalln(err)
+	}
 	time.Sleep(time.Second * 10)
 	os.Exit(1)
 
