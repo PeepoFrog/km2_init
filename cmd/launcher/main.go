@@ -82,17 +82,8 @@ func main() {
 	r := adapters.Repositories{}
 	kiraRepos := []string{"sekai", "interx"}
 	kiraGit := "KiraCore"
-	for _, v := range kiraRepos {
-		switch v {
-		case "sekai":
-			r.Set(kiraGit, v, SEKAI_VERSION)
-		case "interx":
-			r.Set(kiraGit, v, INTERX_VERSION)
-		default:
-			r.Set(kiraGit, v)
-		}
-
-	}
+	r.Set(kiraGit, kiraRepos[0], SEKAI_VERSION)
+	r.Set(kiraGit, kiraRepos[1], INTERX_VERSION)
 	log.Println(r.Get())
 	log.Println(os.LookupEnv("GITHUB_TOKEN"))
 	token := os.Getenv("GITHUB_TOKEN")
