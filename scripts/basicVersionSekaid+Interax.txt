@@ -1,0 +1,99 @@
+IMG_VERSION="v0.13.7" && \
+BASE_NAME="sekaiTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:$IMG_VERSION" && \
+sudo docker run -i -t -v testVolume:/data -d -p 9090:9090 -p 26657:26657 --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash 
+
+#запуск в інтерактивному моді base-image
+sudo docker start -i sekaiTest
+# жмем ентр після 
+
+#apt update && apt install wget -y && apt install jq -y && apt install systemctl -y && apt  install jq -y && \
+wget https://github.com/KiraCore/sekai/releases/download/v0.3.14/sekai-linux-amd64.deb && apt install ./sekai-linux-amd64.deb && \
+NETWORK_NAME="PEPEGENETWORK-1" && \
+SEKAID_HOME=~/.sekaid-$NETWORK_NAME && \
+sekaid init --overwrite --chain-id=$NETWORK_NAME "PEPEGA NETWORK" --home=$SEKAID_HOME
+
+
+#sekaid keys add validator --keyring-backend=test --home=$SEKAID_HOME --output=json | jq 
+
+mkdir $HOME/mnemonics &&\
+\
+sekaid keys add "validator" --keyring-backend=test --home=$SEKAID_HOME --output=json | jq  > $HOME/mnemonics/sekai.mnemonic && \
+sekaid keys add "faucet" --keyring-backend=test --home=$SEKAID_HOME --output=json | jq .mnemonic > $HOME/mnemonics/faucet.mnemonic
+
+
+
+
+
+sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test  --home=$SEKAID_HOME && \
+\
+sekaid add-genesis-account faucet 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME && \
+\
+sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" --home=$SEKAID_HOME && \
+\
+sed -i 's/laddr = "tcp:\/\/127.0.0.1:26657"/laddr = "tcp:\/\/0.0.0.0:26657"/' $SEKAID_HOME/config/config.toml
+
+# sekaid start --home=$SEKAID_HOME
+
+cat > /etc/systemd/system/sekai.service << EOL
+[Unit]
+Description=Local KIRA Test Network
+After=network.target
+[Service]
+MemorySwapMax=0
+Type=simple
+User=root
+WorkingDirectory=/root
+ExecStart=/bin/sekaid start --trace --home=$SEKAID_HOME 
+Restart=always
+RestartSec=5
+LimitNOFILE=4096
+[Install]
+WantedBy=default.target
+EOL
+
+# активуєм сервіс секайду   
+# запускаєм його
+systemctl enable sekai && \
+systemctl start sekai 
+
+
+
+sekaid keys list --keyring-backend=test
+sekaid query bank balances kira1caq4xvzlyttv6570wezu9vp6mdjvavwu4pmwsr --output=json --home=$SEKAID_HOME
+
+######### INTERAX ruinning
+
+
+IMG_VERSION="v0.13.7" && \
+BASE_NAME_INTERAX="interaxTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:$IMG_VERSION" && \
+sudo docker run -i -t -v testVolume:/data -p 11000:11000 -d --privileged --net bridge --name $BASE_NAME_INTERAX --hostname test.local $BASE_IMG /bin/bash
+
+#запуск в інтерактивному моді base-image
+sudo docker start -i interaxTest
+
+wget https://github.com/KiraCore/interx/releases/download/v0.4.32/interx-linux-amd64.deb
+apt install ./interx-linux-amd64.deb
+
+DEFAULT_GRPC_PORT=9090 && \
+DEFAULT_RPC_PORT=26657 && \
+PING_TARGET="172.17.0.2"
+
+interx init --rpc="http://$PING_TARGET:$DEFAULT_RPC_PORT" --grpc="dns:///$PING_TARGET:$DEFAULT_GRPC_PORT" 
+interx start 
+
+
+
+
+
+curl 172.17.0.3:11000/api/status
+
+
+###apline linux testing
+
+BASE_NAME="sekaiAplineTest" 
+sudo docker run -i -t -d -p 9090:9090 -p 26657:26657 --privileged --net bridge --name $BASE_NAME --hostname test.local alpine /bin/sh
+
+#запуск в інтерактивному моді base-image
+sudo docker start -i sekaiAplineTest
+# жмем ентр після 
+

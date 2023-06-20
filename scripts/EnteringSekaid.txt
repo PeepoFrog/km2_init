@@ -1,0 +1,126 @@
+#how to start kira base  
+#IMG_VERSION="v0.13.11" && \
+BASE_NAME="kiraBaseImageSekaid" && BASE_IMG="ghcr.io/kiracore/docker/kira-base:$IMG_VERSION" && \
+docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+
+sudo docker start -i kiraBaseImageSekaid
+###
+
+BASE_NAME="kiraBaseImageSekaid" && BASE_IMG="ghcr.io/kiracore/docker/kira-base:$IMG_VERSION" && \
+docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+##
+
+IMG_VERSION="sha-9273e576d2db8e820f226f021185b8b5df531bcc" && \
+BASE_NAME="kiraBaseImageSekaid" && BASE_IMG="ghcr.io/kiracore/docker/base-image" && \
+docker run -i -t -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+
+
+
+
+
+
+#Завантаження docker base-image для секайд
+IMG_VERSION="v0.13.7" && \
+BASE_NAME="sekaiTest" && BASE_IMG="ghcr.io/kiracore/docker/base-image:$IMG_VERSION" && \
+sudo docker run -i -t -v testVolume:/data -d --privileged --net bridge --name $BASE_NAME --hostname test.local $BASE_IMG /bin/bash
+
+#запуск в інтерактивному моді base-image
+sudo docker start -i sekaiTest
+# жмем ентр після 
+
+
+
+#встановлення голангу
+GO_VER="1.20.3"&&\\
+mkdir ~/tmp || cd ~/tmp || echo "Entered tmp dir" &&\
+wget "https://go.dev/dl/go${GO_VER}.linux-amd64.tar.gz" && \
+rm -rf /usr/local/go && tar -C /usr/local -xzf "go${GO_VER}.linux-amd64.tar.gz" || echo "Go installed" && \
+echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.profile && \
+source ~/.profile 
+
+#версія секайд + папка де буде встановленно
+cd $HOME &&\
+setGlobEnv SEKAI_VERSION "v0.3.14" &&\
+setGlobEnv SEKAI_REPO "$HOME/sekai" && \
+loadGlobEnvs
+
+#перехід в папку секайда +скачування з гіт 
+cd $HOME && \
+rm -fvr $SEKAI_REPO && mkdir $SEKAI_REPO && \
+git clone https://github.com/KiraCore/sekai.git -b $SEKAI_VERSION $SEKAI_REPO 
+
+# встановлення секайду
+cd $SEKAI_REPO && chmod -R 777 ./scripts && \
+make install && echo "SUCCESS installed sekaid $(sekaid version)" || echo "FAILED"
+#sudo -E env "PATH=$PATH" make install
+#ініціація утілз функцій (по дефолту чомусь не ініціюються при встановлені)
+. ~/sekai/scripts/sekai-utils.sh && \
+source ~/sekai/scripts/sekai-utils.sh
+
+GOBIN="${GOROOT}/bin" &&\
+cp /sekaid $GOBIN && echo "SUCCESS sekaid copied" || echo "FAILED sekaid copied" 
+
+
+#імя нетворку
+cd $HOME && \
+NETWORK_NAME="mynetwork-1" && \
+setGlobEnv NETWORK_NAME $NETWORK_NAME && \
+setGlobEnv SEKAID_HOME /data/.sekaid-$NETWORK_NAME && \
+setGlobEnv INTERXD_HOME /data/.interxd-$NETWORK_NAME && \
+loadGlobEnvs && \
+rm -rfv "$SEKAID_HOME" "$INTERXD_HOME" && \
+mkdir -p "$SEKAID_HOME" "$INTERXD_HOME/cache"
+
+
+#створюєм новий акаунт валідатора додаєм його і ставим його як генезіс акаунт 
+sekaid init --overwrite --chain-id=$NETWORK_NAME "KIRA TEST LOCAL VALIDATOR NODE" --home=$SEKAID_HOME
+
+echo $(addAccount validator | jq .mnemonic | xargs) > $SEKAID_HOME/sekai.mnemonic
+echo $(addAccount faucet | jq .mnemonic | xargs) > $INTERXD_HOME/faucet.mnemonic
+echo $(addAccount interx | jq .mnemonic | xargs) > $INTERXD_HOME/interx.mnemonic
+sekaid add-genesis-account $(showAddress validator) 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME
+sekaid add-genesis-account $(showAddress faucet) 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=test --home=$SEKAID_HOME
+
+sekaid gentx-claim validator --keyring-backend=test --moniker="GENESIS VALIDATOR" --home=$SEKAID_HOME
+
+
+    
+
+# тут хз що
+cat > /etc/systemd/system/sekai.service << EOL
+[Unit]
+Description=Local KIRA Test Network
+After=network.target
+[Service]
+MemorySwapMax=0
+Type=simple
+User=root
+WorkingDirectory=/root
+ExecStart=$GOBIN/sekaid start --home=$SEKAID_HOME --trace
+Restart=always
+RestartSec=5
+LimitNOFILE=4096
+[Install]
+WantedBy=default.target
+EOL
+
+# активуєм сервіс секайду   
+systemctl enable sekai 
+# запускаєм його
+systemctl start sekai
+
+# дивимся чи все ок хоча хз для чого файл .NodeInfo.network
+
+NETWORK_STATUS_CHAIN_ID=$(showStatus | jq .NodeInfo.network | xargs)
+
+if [ "$NETWORK_NAME" != "$NETWORK_STATUS_CHAIN_ID" ] ; then
+    echoErr "ERROR: Incorrect chain ID from the status query, expected '$NETWORK_NAME', but got $NETWORK_STATUS_CHAIN_ID"
+fi
+
+
+
+
+
+
+
+    
