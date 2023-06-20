@@ -27,13 +27,8 @@ type Repositories struct {
 	repos []Repository
 }
 
-// Add a new Repository to Repositories
-func (r *Repositories) Set(owner, repo string, args ...string) {
-	version := ""
-	if len(args) > 0 {
-		version = args[0]
-	}
-
+// Add a new Repository to Repositories, version can be = ""
+func (r *Repositories) Set(owner, repo, version string) {
 	newRepo := Repository{Owner: owner, Repo: repo, Version: version}
 	r.repos = append(r.repos, newRepo)
 }
@@ -106,6 +101,7 @@ func (gh *GitHubAdapter) GetLatestRelease(owner, repo string) (*github.Repositor
 func DownloadBinaryFromRepo(ctx context.Context, client *github.Client, owner, repo, binaryName, tag string) {
 	var release *github.RepositoryRelease
 	var err error
+	log.Printf("downloading %s from %s/%s, tag:%s\n", binaryName, owner, repo, tag)
 	switch tag {
 	case "latest":
 		release, _, err = client.Repositories.GetLatestRelease(ctx, owner, repo)

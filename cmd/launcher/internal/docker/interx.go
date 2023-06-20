@@ -54,13 +54,13 @@ func (i *InterxManager) RunInterxContainer(sekaidContainerName, inerxContainerNa
 		log.Println(err)
 		return err
 	}
-	go func() {
-		out, err = i.DockerClient.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `interx start`})
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println(string(out))
-	}()
+
+	out, err = i.DockerClient.ExecCommandInContainerInDetachMode(inerxContainerName, []string{`bash`, `-c`, `interx start`})
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println(string(out))
+
 	log.Println("interx started")
 	return err
 }

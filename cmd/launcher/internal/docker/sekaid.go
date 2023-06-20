@@ -20,12 +20,12 @@ func NewSekaidManager(grpcPort, rpcPort, dockerBaseImageName, volumeName, docker
 	natGrcpPort, err := nat.NewPort("tcp", grpcPort)
 	if err != nil {
 		log.Println(err)
-		return &SekaidManager{}, err
+		return nil, err
 	}
 	natRpcPort, err := nat.NewPort("tcp", rpcPort)
 	if err != nil {
 		log.Println(err)
-		return &SekaidManager{}, err
+		return nil, err
 	}
 
 	sekaiContainerConfig := &container.Config{
@@ -59,10 +59,8 @@ func NewSekaidManager(grpcPort, rpcPort, dockerBaseImageName, volumeName, docker
 	return &SekaidManager{sekaiContainerConfig, sekaiHostConfig, sekaidNetworkingConfig, dockerClient}, err
 }
 
-func (s *SekaidManager) RunSekaidContainer(sekaiContainerName, sekaiNetworkName, sekaidHome, keyringBackend, rcpPort string) error {
+func (s *SekaidManager) RunSekaidContainer(sekaiContainerName, sekaiNetworkName, sekaidHome, keyringBackend, rcpPort, mnemonicDir string) error {
 	moniker := "M O N I K E R"
-	mneminicDir := `~/mnemonics`
-
 	// command := `sekaid init  --overwrite --chain-id=` + sekaiNetworkName + ` --home=` + SEKAID_HOME + ` "` + moniker + `"`
 	command := fmt.Sprintf(`sekaid init  --overwrite --chain-id=%s --home=%s "%s"`, sekaiNetworkName, sekaidHome, moniker)
 	log.Println(command)
@@ -71,40 +69,9 @@ func (s *SekaidManager) RunSekaidContainer(sekaiContainerName, sekaiNetworkName,
 		log.Println(err)
 		return err
 	}
+	log.Println(string(out[0:100]))
 
-	command = fmt.Sprintf(`mkdir %s`, mneminicDir)
-	log.Println(command)
-	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	command = fmt.Sprintf(`sekaid keys add "validator" --keyring-backend=%s --home=%s --output=json | jq .mnemonic > %s/sekai.mnemonic`, keyringBackend, sekaidHome, mneminicDir)
-	log.Println(command)
-	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	command = fmt.Sprintf(`sekaid keys add "faucet" --keyring-backend=%s --home=%s --output=json | jq .mnemonic > %s/faucet.mnemonic`, keyringBackend, sekaidHome, mneminicDir)
-	log.Println(command)
-	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	command = fmt.Sprintf(`sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=%v --home=%v`, keyringBackend, sekaidHome)
-	log.Println(command)
-	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	command = fmt.Sprintf(`sekaid gentx-claim validator --keyring-backend=%s --moniker="GENESIS VALIDATOR" --home=%s`, keyringBackend, sekaidHome)
+	command = fmt.Sprintf(`mkdir %s`, mnemonicDir)
 	log.Println(command)
 	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
 	if err != nil {
@@ -113,14 +80,50 @@ func (s *SekaidManager) RunSekaidContainer(sekaiContainerName, sekaiNetworkName,
 	}
 	log.Println(string(out))
 
-	go func() {
-		command := fmt.Sprintf(`sekaid start --rpc.laddr "tcp://0.0.0.0:%s" --home=%s`, rcpPort, sekaidHome)
-		log.Println(command)
-		out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-		if err != nil {
-			log.Println(err)
-		}
-	}()
+	command = fmt.Sprintf(`sekaid keys add "validator" --keyring-backend=%s --home=%s --output=json | jq .mnemonic > %s/sekai.mnemonic`, keyringBackend, sekaidHome, mnemonicDir)
+	log.Println(command)
+	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	log.Println(string(out))
+
+	command = fmt.Sprintf(`sekaid keys add "faucet" --keyring-backend=%s --home=%s --output=json | jq .mnemonic > %s/faucet.mnemonic`, keyringBackend, sekaidHome, mnemonicDir)
+	log.Println(command)
+	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	log.Println(string(out))
+
+	command = fmt.Sprintf(`sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=%v --home=%v`, keyringBackend, sekaidHome)
+	log.Println(command)
+	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	log.Println(string(out))
+
+	moniker = "genesis validator"
+	command = fmt.Sprintf(`sekaid gentx-claim validator --keyring-backend=%s --moniker="%s" --home=%s`, keyringBackend, moniker, sekaidHome)
+	log.Println(command)
+	out, err = s.DockerClient.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	log.Println(string(out))
+
+	command = fmt.Sprintf(`sekaid start --rpc.laddr "tcp://0.0.0.0:%s" --home=%s`, rcpPort, sekaidHome)
+	log.Println(command)
+	_, err = s.DockerClient.ExecCommandInContainerInDetachMode(sekaiContainerName, []string{`bash`, `-c`, command})
+	if err != nil {
+		log.Println(err)
+	}
+
 	log.Println("sekai started")
 	return err
 }

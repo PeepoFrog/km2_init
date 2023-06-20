@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/mrlutik/km2_init/cmd/launcher/internal/adapters"
@@ -80,10 +79,12 @@ func main() {
 	}
 	log.Println(checkBool)
 	r := adapters.Repositories{}
-	kiraRepos := []string{"sekai", "interx"}
+	// kiraRepos := []string{"sekai", "interx"}
+	sekaiRepo := "sekai"
+	interxRepo := "interx"
 	kiraGit := "KiraCore"
-	r.Set(kiraGit, kiraRepos[0], SEKAI_VERSION)
-	r.Set(kiraGit, kiraRepos[1], INTERX_VERSION)
+	r.Set(kiraGit, sekaiRepo, SEKAI_VERSION)
+	r.Set(kiraGit, interxRepo, INTERX_VERSION)
 	log.Println(r.Get())
 	log.Println(os.LookupEnv("GITHUB_TOKEN"))
 	token := os.Getenv("GITHUB_TOKEN")
@@ -102,14 +103,14 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if check != "" {
+	if check {
 		dockerClient.StopAndDeleteContainer(ctx, SEKAID_CONTAINER_NAME)
 	}
 	check, err = dockerClient.CheckForContainersName(ctx, INTERX_CONTAINER_NAME)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if check != "" {
+	if check {
 		dockerClient.StopAndDeleteContainer(ctx, INTERX_CONTAINER_NAME)
 	}
 	dockerClient.CheckAndCreateNetwork(ctx, DOCKER_NETWORK_NAME)
@@ -133,8 +134,9 @@ func main() {
 	}
 
 	// goto F
-	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "sekai", sekaiDebFileName, SEKAI_VERSION)
-	adapters.DownloadBinaryFromRepo(ctx, githubClient, "KiraCore", "interx", interxDebFileName, INTERX_VERSION)
+
+	adapters.DownloadBinaryFromRepo(ctx, githubClient, kiraGit, sekaiRepo, sekaiDebFileName, SEKAI_VERSION)
+	adapters.DownloadBinaryFromRepo(ctx, githubClient, kiraGit, interxRepo, interxDebFileName, INTERX_VERSION)
 	// F:
 
 	//sending deb files into containcer
@@ -156,7 +158,7 @@ func main() {
 	}
 
 	// err = dockerClient.RunSekaidBin(ctx, SEKAID_CONTAINER_NAME, NETWORK_NAME, SEKAID_HOME, KEYRING_BACKEND, strconv.Itoa(RPC_PORT))
-	err = sekaidManager.RunSekaidContainer(SEKAID_CONTAINER_NAME, DOCKER_NETWORK_NAME, SEKAID_HOME, KEYRING_BACKEND, strconv.Itoa(RPC_PORT))
+	err = sekaidManager.RunSekaidContainer(SEKAID_CONTAINER_NAME, DOCKER_NETWORK_NAME, SEKAID_HOME, KEYRING_BACKEND, strconv.Itoa(RPC_PORT), MNEMONIC_FOLDER)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -165,7 +167,6 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	time.Sleep(time.Second * 10)
 	os.Exit(1)
 
 }

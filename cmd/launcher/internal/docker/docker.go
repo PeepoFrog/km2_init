@@ -187,6 +187,32 @@ func (DC *DockerClient) InstallDebPackage(containerID, debDestPath string) error
 	}
 	return nil
 }
+func (DC *DockerClient) ExecCommandInContainerInDetachMode(containerID string, command []string) ([]byte, error) {
+	execCreateResponse, err := DC.Cli.ContainerExecCreate(context.Background(), containerID, types.ExecConfig{
+		Cmd:          command,
+		AttachStdout: false,
+		AttachStderr: false,
+		Detach:       true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	execAttachConfig := types.ExecStartCheck{}
+	resp, err := DC.Cli.ContainerExecAttach(context.Background(), execCreateResponse.ID, execAttachConfig)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer resp.Close()
+
+	// Read the output
+	output, err := io.ReadAll(resp.Reader)
+	if err != nil {
+		log.Println(err)
+		return output, err
+	}
+	return output, err
+}
 
 func (DC *DockerClient) ExecCommandInContainer(containerID string, command []string) ([]byte, error) {
 	execCreateResponse, err := DC.Cli.ContainerExecCreate(context.Background(), containerID, types.ExecConfig{
@@ -215,21 +241,21 @@ func (DC *DockerClient) ExecCommandInContainer(containerID string, command []str
 }
 
 // check if containers with same names existing, if yes delete
-func (DC *DockerClient) CheckForContainersName(ctx context.Context, containerNameToCheck string) (string, error) {
+func (DC *DockerClient) CheckForContainersName(ctx context.Context, containerNameToCheck string) (bool, error) {
 	containers, err := DC.Cli.ContainerList(ctx, types.ContainerListOptions{All: true})
 	if err != nil {
 		log.Println(err)
-		return "", err
+		return true, err
 	}
 	for _, c := range containers {
 		for _, name := range c.Names {
 			if name == `/`+containerNameToCheck {
 				log.Printf("container %v detected \n", name)
-				return name, err
+				return true, err
 			}
 		}
 	}
-	return "", err
+	return false, err
 }
 
 // Stoping and deleting container
@@ -268,92 +294,92 @@ func (DC *DockerClient) InitAndCreateContainer(ctx context.Context, containerCof
 }
 
 // Runs sekaid bin in container with all required setting
-func (DC *DockerClient) RunSekaidBin(ctx context.Context, sekaiContainerName, sekaiNetworkName, sekaidHome, keyringBackend, rcpPort string) error {
-	moniker := "M O N I K E R"
-	mneminicDir := `~/mnemonics`
+// func (DC *DockerClient) RunSekaidBin(ctx context.Context, sekaiContainerName, sekaiNetworkName, sekaidHome, keyringBackend, rcpPort, mnemonicDir string) error {
+// 	moniker := "M O N I K E R"
+// 	mneminicDir := `~/mnemonics`
 
-	// command := `sekaid init  --overwrite --chain-id=` + sekaiNetworkName + ` --home=` + SEKAID_HOME + ` "` + moniker + `"`
-	command := fmt.Sprintf(`sekaid init  --overwrite --chain-id=%s --home=%s "%s"`, sekaiNetworkName, sekaidHome, moniker)
-	log.Println(command)
-	out, err := DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+// 	// command := `sekaid init  --overwrite --chain-id=` + sekaiNetworkName + ` --home=` + SEKAID_HOME + ` "` + moniker + `"`
+// 	command := fmt.Sprintf(`sekaid init  --overwrite --chain-id=%s --home=%s "%s"`, sekaiNetworkName, sekaidHome, moniker)
+// 	log.Println(command)
+// 	out, err := DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
 
-	command = fmt.Sprintf(`mkdir %s`, mneminicDir)
-	log.Println(command)
-	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+// 	command = fmt.Sprintf(`mkdir %s`, mneminicDir)
+// 	log.Println(command)
+// 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
 
-	command = fmt.Sprintf(`sekaid keys add "validator" --keyring-backend=%s --home=%s --output=json | jq .mnemonic > %s/sekai.mnemonic`, keyringBackend, sekaidHome, mneminicDir)
-	log.Println(command)
-	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+// 	command = fmt.Sprintf(`sekaid keys add "validator" --keyring-backend=%s --home=%s --output=json | jq .mnemonic > %s/sekai.mnemonic`, keyringBackend, sekaidHome, mneminicDir)
+// 	log.Println(command)
+// 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
 
-	command = fmt.Sprintf(`sekaid keys add "faucet" --keyring-backend=%s --home=%s --output=json | jq .mnemonic > %s/faucet.mnemonic`, keyringBackend, sekaidHome, mneminicDir)
-	log.Println(command)
-	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+// 	command = fmt.Sprintf(`sekaid keys add "faucet" --keyring-backend=%s --home=%s --output=json | jq .mnemonic > %s/faucet.mnemonic`, keyringBackend, sekaidHome, mneminicDir)
+// 	log.Println(command)
+// 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
 
-	command = fmt.Sprintf(`sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=%v --home=%v`, keyringBackend, sekaidHome)
-	log.Println(command)
-	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+// 	command = fmt.Sprintf(`sekaid add-genesis-account validator 150000000000000ukex,300000000000000test,2000000000000000000000000000samolean,1000000lol --keyring-backend=%v --home=%v`, keyringBackend, sekaidHome)
+// 	log.Println(command)
+// 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
 
-	command = fmt.Sprintf(`sekaid gentx-claim validator --keyring-backend=%s --moniker="GENESIS VALIDATOR" --home=%s`, keyringBackend, sekaidHome)
-	log.Println(command)
-	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	log.Println(string(out))
+// 	command = fmt.Sprintf(`sekaid gentx-claim validator --keyring-backend=%s --moniker="GENESIS VALIDATOR" --home=%s`, keyringBackend, sekaidHome)
+// 	log.Println(command)
+// 	out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+// 	log.Println(string(out))
 
-	go func() {
-		command := fmt.Sprintf(`sekaid start --rpc.laddr "tcp://0.0.0.0:%s" --home=%s`, rcpPort, sekaidHome)
-		log.Println(command)
-		out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
-		if err != nil {
-			log.Println(err)
-		}
-	}()
-	log.Println("sekai started")
-	return err
-}
+// 	go func() {
+// 		command := fmt.Sprintf(`sekaid start --rpc.laddr "tcp://0.0.0.0:%s" --home=%s`, rcpPort, sekaidHome)
+// 		log.Println(command)
+// 		out, err = DC.ExecCommandInContainer(sekaiContainerName, []string{`bash`, `-c`, command})
+// 		if err != nil {
+// 			log.Println(err)
+// 		}
+// 	}()
+// 	log.Println("sekai started")
+// 	return err
+// }
 
-// Runs interx bin in container with all required setting
-func (DC *DockerClient) RunInterxBin(ctx context.Context, inerxContainerName, sekaidContainerName, rpc_port, grpc_port string) error {
-	// INTERAX START
-	command := fmt.Sprintf(`interx init --rpc="http://%s:%s" --grpc="dns:///%s:%s" `, sekaidContainerName, rpc_port, sekaidContainerName, grpc_port)
-	out, err := DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, command})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	go func() {
-		out, err = DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `interx start`})
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println(string(out))
-	}()
-	log.Println("interx started")
-	return err
+// // Runs interx bin in container with all required setting
+// func (DC *DockerClient) RunInterxBin(ctx context.Context, inerxContainerName, sekaidContainerName, rpc_port, grpc_port string) error {
+// 	// INTERAX START
+// 	command := fmt.Sprintf(`interx init --rpc="http://%s:%s" --grpc="dns:///%s:%s" `, sekaidContainerName, rpc_port, sekaidContainerName, grpc_port)
+// 	out, err := DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, command})
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+// 	go func() {
+// 		out, err = DC.ExecCommandInContainer(inerxContainerName, []string{`bash`, `-c`, `interx start`})
+// 		if err != nil {
+// 			log.Println(err)
+// 		}
+// 		log.Println(string(out))
+// 	}()
+// 	log.Println("interx started")
+// 	return err
 
-}
+// }
 
 func (DC *DockerClient) CheckAndCreateNetwork(ctx context.Context, networkName string) error {
 	networklist, err := DC.Cli.NetworkList(ctx, types.NetworkListOptions{})
